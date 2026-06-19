@@ -1,3 +1,4 @@
-# Exports PDF (générés par build.py)
-*.pdf
+# Générés localement
 output/
+jobs/
+*.pdf
