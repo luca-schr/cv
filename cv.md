@@ -6,7 +6,7 @@
 
 **Développeur Fullstack JavaScript / .NET**
 
-Paris, France, +33 7 75 28 61 34, lucas.schrever@outlook.com, [linkedin.com/in/lucas-schrever](https://linkedin.com/in/lucas-schrever), [lucas-schrever.vercel.app](https://lucas-schrever.vercel.app)
+Paris, France, +33 7 75 28 61 34, [lucas.schrever@outlook.com](mailto:lucas.schrever@outlook.com), [linkedin.com/in/lucas-schrever](https://linkedin.com/in/lucas-schrever), [lucas-schrever.vercel.app](https://lucas-schrever.vercel.app)
 
 </div>
 

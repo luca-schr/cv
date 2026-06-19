@@ -1,0 +1,174 @@
+# Source de vérité du CV — utilisée par build.py pour générer cv.md et les variantes par offre.
+
+header:
+  name: Lucas Schrever
+  title_default: Développeur Fullstack JavaScript / .NET
+  email: lucas.schrever@outlook.com
+  contact: >-
+    Paris, France, +33 7 75 28 61 34,
+    [lucas.schrever@outlook.com](mailto:lucas.schrever@outlook.com),
+    [linkedin.com/in/lucas-schrever](https://linkedin.com/in/lucas-schrever),
+    [lucas-schrever.vercel.app](https://lucas-schrever.vercel.app)
+  photo: lucas-schrever.jpg
+
+profil:
+  intro: Développeur Fullstack en développement web (Full Stack Developer).
+  closing: >-
+    Conception d'interfaces, modélisation de bases de données, sécurisation d'API.
+  keywords:
+    - { term: JavaScript, tags: [javascript, js, ecmascript] }
+    - { term: TypeScript, tags: [typescript, ts] }
+    - { term: React, tags: [react, reactjs, react.js, frontend, front-end] }
+    - { term: Next.js, tags: [nextjs, next.js, next] }
+    - { term: NestJS, tags: [nestjs, nest.js, nest] }
+    - { term: .NET, tags: [dotnet, .net, asp.net, aspnet] }
+    - { term: API REST, tags: [api, rest, restful] }
+    - { term: GraphQL, tags: [graphql] }
+    - { term: WordPress, tags: [wordpress, cms, webmaster] }
+    - { term: PostgreSQL, tags: [postgresql, postgres, sql] }
+    - { term: Docker, tags: [docker, conteneur, container] }
+    - { term: Git, tags: [git, github, gitlab] }
+    - { term: Vue.js, tags: [vue, vuejs, vue.js] }
+    - { term: Material UI, tags: [mui, material-ui, material ui] }
+    - { term: TanStack Query, tags: [tanstack, react-query, react query] }
+    - { term: PHP, tags: [php] }
+    - { term: SEO, tags: [seo, référencement, referencement, analytics] }
+    - { term: Agile, tags: [agile, scrum, kanban] }
+    - { term: UX/UI, tags: [ux, ui, ux/ui, design, accessibility] }
+    - { term: Cybersécurité, tags: [cyber, cybersécurité, cybersecurity, owasp, devsecops, pentest] }
+
+experiences:
+  - id: jane
+    title: Développeur Fullstack React / Next.js et NestJS
+    company: Jane
+    dates: Décembre 2025 - Mai 2026
+    title_tags: [fullstack, react, nextjs, nestjs, dotnet, javascript, typescript]
+    bullets:
+      - text: >-
+          Création from scratch de [jane-energie.fr](https://jane-energie.fr) :
+          Next.js, TypeScript, WordPress, API GraphQL (blog et projets).
+        tags: [nextjs, typescript, wordpress, graphql, fullstack]
+      - text: >-
+          Développement front-end sur [jane-app.fr](https://jane-app.fr) :
+          React, Material UI, TanStack Query.
+        tags: [react, mui, tanstack, frontend, javascript]
+      - text: Interventions back-end sur routes NestJS et API .NET, bases PostgreSQL.
+        tags: [nestjs, dotnet, postgresql, backend, api]
+      - text: Consommation d'API REST et GraphQL, Hooks React, méthodologie Agile.
+        tags: [api, graphql, react, agile, rest]
+
+  - id: shin
+    title: Développeur Frontend Vue.js et WordPress
+    company: Shin Agency
+    dates: Août 2023 - Septembre 2024
+    title_tags: [frontend, vue, wordpress, php, seo, cms, ux, webmaster, integrateur]
+    bullets:
+      - text: >-
+          Corrections UX/UI sur [shin-agency.com](https://shin-agency.com) :
+          Vue.js, Tailwind CSS, Sass.
+        tags: [vue, tailwind, sass, ux, ui, frontend]
+      - text: >-
+          Maintenance d'extensions WordPress et optimisation SEO sur
+          [shin-agency.com](https://shin-agency.com).
+        tags: [wordpress, seo, php, cms, integrateur]
+      - text: >-
+          Maintenance de plus de 15 sites partenaires (Andros, Best Western, Mauboussin)
+          en PHP, WordPress et Docker, versioning Git.
+        tags: [php, wordpress, docker, git, maintenance]
+
+  - id: adtac
+    title: Chef de Projet Digital
+    company: Agence de Développement Touristique de l'Aube en Champagne
+    dates: Mai 2022 - Août 2022
+    title_tags: [chef de projet, project, agile, ux, seo]
+    bullets:
+      - text: >-
+          Supervision technique, spécifications fonctionnelles et recette lors de la
+          refonte UX/UI de l'extranet aube-champagne.com.
+        tags: [chef de projet, ux, ui, recette, specifications]
+      - text: Audits de performance web, SEO et structure applicative.
+        tags: [seo, performance, audit, web]
+
+  - id: kyriba
+    title: Assistant Consultant Marketing Digital
+    company: Kyriba France
+    dates: Mai 2020 - Août 2021
+    title_tags: [marketing, wordpress, seo, cms, content]
+    bullets:
+      - text: >-
+          Création et mise en production de landing pages marketing en WordPress
+          et Salesforce Pardot.
+        tags: [wordpress, marketing, cms, landing]
+      - text: Suivi des indicateurs d'engagement et audits SEO sur kyriba.com (FR, ES, IT).
+        tags: [seo, marketing, analytics, audit]
+
+formations:
+  - id: mba-cyber
+    title: MBA Expert en Cybersécurité
+    school: MBA ESG Paris
+    dates: 2025 - 2026
+    tags: [cyber, cybersécurité, security, owasp, devsecops, rgpd, pentest]
+    description: >-
+      Titre RNCP niveau 7 Expert en Cybersécurité. Gestion des risques (EBIOS Risk
+      Manager ANSSI), pentesting, DevSecOps, sécurité des réseaux et des applications,
+      RGPD, gestion des incidents. Préparation CompTIA Security+ et AWS Certified
+      Security Specialty.
+
+  - id: iim-mtd
+    title: Mastère Management de la Transformation Digitale
+    school: IIM / ESILV
+    dates: 2018 - 2024
+    tags: [fullstack, mobile, ux, ui, seo, agile, scrum, product, data, ia, digital]
+    description: >-
+      Double diplôme RNCP niveau 7 Manager de la Transformation Digitale.
+      Développement Fullstack et mobile, UX/UI, SEO, gestion de projet Agile (Scrum),
+      product management, data, intelligence artificielle, conduite du changement.
+
+competences:
+  - label: Back-end
+    items:
+      - { term: .NET, tags: [dotnet, .net] }
+      - { term: Node.js, tags: [nodejs, node.js, node] }
+      - { term: NestJS, tags: [nestjs, nest] }
+      - { term: PHP, tags: [php] }
+      - { term: API REST, tags: [api, rest] }
+      - { term: GraphQL, tags: [graphql] }
+      - { term: WordPress, tags: [wordpress, cms] }
+  - label: Front-end
+    items:
+      - { term: React, tags: [react, reactjs] }
+      - { term: Next.js, tags: [nextjs, next.js] }
+      - { term: Vue.js, tags: [vue, vuejs] }
+      - { term: JavaScript, tags: [javascript, js] }
+      - { term: TypeScript, tags: [typescript, ts] }
+      - { term: TanStack Query, tags: [tanstack, react-query] }
+      - { term: Material UI, tags: [mui, material-ui] }
+  - label: Bases de données
+    items:
+      - { term: PostgreSQL, tags: [postgresql, postgres] }
+      - { term: MySQL, tags: [mysql] }
+      - { term: MongoDB, tags: [mongodb, mongo] }
+  - label: DevOps
+    items:
+      - { term: Docker, tags: [docker] }
+      - { term: GitHub Actions, tags: [github actions, ci/cd, cicd] }
+      - { term: Git, tags: [git, github] }
+  - label: Styles et design
+    items:
+      - { term: Tailwind CSS, tags: [tailwind, css] }
+      - { term: Sass, tags: [sass, scss] }
+      - { term: responsive design, tags: [responsive, mobile] }
+      - { term: Figma, tags: [figma, design] }
+  - label: SEO
+    items:
+      - { term: audit technique, tags: [seo, audit] }
+      - { term: optimisation sémantique, tags: [seo, sémantique] }
+      - { term: performance web, tags: [performance, web, lighthouse] }
+
+certifications: >-
+  MongoDB Associate Developer (en cours), AWS Certified Security Specialist (en cours),
+  CompTIA Security+ (en cours)
+
+langues:
+  - "Anglais : professionnel, C1 certifié (TOEFL/TOEIC)"
+  - "Espagnol : courant"

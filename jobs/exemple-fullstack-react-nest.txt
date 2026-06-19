@@ -1,0 +1,14 @@
+Développeur Fullstack React / NestJS
+
+Nous recherchons un développeur Full Stack pour renforcer notre équipe produit.
+
+Missions :
+- Développement front-end React, TypeScript, Material UI
+- API REST et GraphQL avec NestJS et .NET
+- Bases PostgreSQL, Docker, Git
+- Méthodologie Agile / Scrum
+- Sécurisation des applications (bonnes pratiques OWASP)
+
+Profil :
+- Expérience Next.js appréciée
+- Autonomie, rigueur, travail en équipe
