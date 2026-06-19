@@ -1,0 +1,206 @@
+/* CV — styles pour WeasyPrint */
+
+@page {
+  size: A4;
+  margin: 1.8cm 2cm;
+}
+
+:root {
+  --color-text: #1a1a2e;
+  --color-muted: #4a4a68;
+  --color-accent: #2563eb;
+  --color-border: #e2e8f0;
+}
+
+html {
+  font-size: 10.5pt;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text);
+  max-width: 100%;
+}
+
+/* En-tête : texte d'abord (ATS), photo en position absolue (humain) */
+
+.cv-header {
+  position: relative;
+  margin-bottom: 1.2rem;
+  padding-right: 100px;
+  padding-bottom: 0.9rem;
+  border-bottom: 2px solid var(--color-accent);
+  page-break-inside: avoid;
+}
+
+.photo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  border: 2px solid var(--color-border);
+}
+
+.cv-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: left;
+  border-bottom: none;
+}
+
+.cv-header h1 + p {
+  margin: 0 0 0.45rem;
+  text-align: left;
+  font-size: 9.5pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-accent);
+}
+
+.cv-header h1 + p + p {
+  margin: 0;
+  text-align: left;
+  font-size: 9pt;
+  color: var(--color-text);
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* Fallback si en-tête sans bloc HTML */
+
+h1 {
+  margin: 0 0 0.25rem;
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+  border-bottom: none;
+}
+
+h1 + p {
+  margin: 0 0 0.5rem;
+  text-align: center;
+  font-size: 9.5pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-accent);
+}
+
+h1 + p + p {
+  margin: 0 0 1.2rem;
+  padding-bottom: 0.9rem;
+  text-align: center;
+  font-size: 9pt;
+  color: var(--color-text);
+  border-bottom: 2px solid var(--color-accent);
+}
+
+hr {
+  display: none;
+}
+
+/* Sections */
+
+h2 {
+  margin: 1.1rem 0 0.55rem;
+  font-size: 8.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.2rem;
+  page-break-after: avoid;
+}
+
+h3 {
+  margin: 0.75rem 0 0.15rem;
+  font-size: 10.5pt;
+  font-weight: 600;
+  color: var(--color-text);
+  page-break-after: avoid;
+}
+
+h3 + em,
+h3 + p em {
+  display: block;
+  margin: 0 0 0.35rem;
+  font-size: 9pt;
+  font-style: normal;
+  color: var(--color-text);
+}
+
+p {
+  margin: 0 0 0.45rem;
+  font-size: 9.5pt;
+  color: var(--color-text);
+}
+
+/* Listes */
+
+ul {
+  margin: 0.2rem 0 0.5rem;
+  padding-left: 1.1rem;
+}
+
+li {
+  margin-bottom: 0.25rem;
+  font-size: 9.5pt;
+  color: var(--color-text);
+}
+
+/* Tableau compétences */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.3rem 0 0.5rem;
+  font-size: 9pt;
+}
+
+th,
+td {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+}
+
+th {
+  width: 26%;
+  font-weight: 600;
+  color: var(--color-text);
+  background: #f8fafc;
+}
+
+td {
+  color: var(--color-text);
+}
+
+tr:last-child th,
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* Liens */
+
+a {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+/* Impression */
+
+h2, h3, ul, table {
+  page-break-inside: avoid;
+}
