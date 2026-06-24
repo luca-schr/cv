@@ -1,33 +1,16 @@
-# Configuration de l'analyse des fiches de poste (toute source : URL, Indeed, LinkedIn, texte brut).
-
 scoring:
   experience_title_tag_weight: 3
-  profil_keyword_limit: 12
+  profil_keyword_limit: 8
+  max_bullets_recent: 3
+  max_bullets_older: 2
+  profil_max_chars: 380
 
 noise_substrings:
   - indeed
   - linkedin
-  - hiring lab
-  - welcome to the jungle
-  - hellowork
-  - apec.fr
-  - "© 20"
   - cookies
-  - conditions d'utilisation
-  - centre de confidentialité
-  - politique de confidentialité
-  - début du contenu principal
-  - correspondance entre ce poste
-  - extraits de la description
-  - emplois 
-  - salaires de
-  - logo
-  - étoiles
-  - "&nbsp;"
-  - signalement dsa
-  - accessibilité sur indeed
-  - just a moment
   - cloudflare
+  - just a moment
 
 title_hints:
   - développeur
@@ -36,88 +19,33 @@ title_hints:
   - engineer
   - webmaster
   - intégrateur
-  - integrateur
-  - chef de projet
-  - consultant
-  - designer
-  - lead
-  - product owner
   - fullstack
   - full stack
-  - full-stack
-  - administrateur
-  - analyste
-  - chargé
-  - chargee
 
 title_skip:
-  - emplois 
-  - salaires
-  - logo
-  - étoiles
-  - critères candidat
-  - description du poste
-  - vos missions
-  - détails de l'emploi
-  - avantages
-  - type de poste
-  - lieu
-  - quoi
-  - où
-
-# Si aucun titre extrait : premier tag_set qui matche entièrement.
-title_fallbacks:
-  - tags: [cyber]
-    title: Développeur Fullstack JavaScript / .NET - Cybersécurité
-  - tags: [webmaster, cms]
-    title: Webmaster
-  - tags: [integrateur, wordpress]
-    title: Intégrateur WordPress
-  - tags: [fullstack, react]
-    title: Développeur Fullstack JavaScript / .NET
+  - salaire
+  - candidature
+  - postuler
 
 tag_aliases:
-  javascript: [javascript, java script, js, ecmascript, es6]
+  react: [react, reactjs, react.js]
+  tanstack: [tanstack, tanstack query, react-query, react query]
+  nextjs: [next.js, nextjs, next]
+  nestjs: [nestjs, nest.js]
+  wordpress: [wordpress, wp, cms]
+  javascript: [javascript, js, ecmascript]
   typescript: [typescript, ts]
-  react: [react, reactjs, react.js, react native]
-  nextjs: [next.js, nextjs, next js]
-  nestjs: [nestjs, nest.js, nest js]
-  dotnet: [.net, dotnet, asp.net, aspnet, "c#", csharp]
-  nodejs: [node.js, nodejs, node js]
-  graphql: [graphql, graph ql]
-  wordpress: [wordpress, wp]
-  postgresql: [postgresql, postgres]
-  docker: [docker, conteneur, container, kubernetes, k8s]
-  git: [git, github, gitlab]
-  vue: [vue.js, vuejs, vue]
-  mui: [material ui, material-ui, mui]
-  tanstack: [tanstack, react-query, react query]
   php: [php]
   seo: [seo, référencement, referencement]
-  agile: [agile, scrum, kanban]
-  ux: [ux, ui, ux/ui, expérience utilisateur, experience utilisateur]
-  api: [api, rest, restful, rest api]
+  docker: [docker]
+  git: [git, github]
+  vue: [vue, vue.js, vuejs]
+  dotnet: [.net, dotnet, asp.net]
+  graphql: [graphql]
+  postgresql: [postgresql, postgres]
+  agile: [agile, scrum]
+  ux: [ux, ui, ux/ui]
+  webmaster: [webmaster]
+  integrateur: [intégrateur, integrateur]
+  api: [api, rest, restful]
   fullstack: [fullstack, full stack, full-stack]
-  frontend: [front-end, frontend, front end]
-  backend: [back-end, backend, back end]
-  cyber: [cybersécurité, cybersecurity, owasp, devsecops, pentest, pentesting, expert en cybersécurité]
-  tailwind: [tailwind, tailwindcss]
-  sass: [sass, scss]
-  mongodb: [mongodb, mongo]
-  mysql: [mysql]
-  cms: [cms, backoffice, back-office, back office]
-  marketing: [marketing, growth]
-  product: [product owner, product management, product manager]
-  scrum: [scrum]
-  ia: [intelligence artificielle, machine learning, ml]
-  mobile: [mobile, react native, flutter]
-  figma: [figma]
-  performance: [performance, lighthouse, core web vitals]
-  chef de projet: [chef de projet, project manager, gestion de projet]
-  webmaster: [webmaster, web master]
-  integrateur: [intégrateur, integrateur, intégration web]
-  analytics: [analytics, web analytics, kpi, trafic, conversion, engagement, piloter]
-  accessibility: [accessibilité, accessibility, a11y]
-  content: [contenu, contenus, éditorial, editorial]
-  maintenance: [maintenance, incidents, bon fonctionnement]
-  sante: [santé, sante, médical, medical, pharma]

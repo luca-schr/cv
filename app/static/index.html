@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CV Generator</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <main class="layout">
+    <header class="header">
+      <h1>CV Generator</h1>
+      <p class="muted">Colle une offre → génère un CV adapté</p>
+      <p id="ollama-status" class="ollama-status muted">Ollama : vérification…</p>
+    </header>
+
+    <section class="panel">
+      <label for="job-text">Offre d'emploi</label>
+      <textarea id="job-text" rows="12" placeholder="Colle le texte de l'offre ici…"></textarea>
+
+      <div class="row">
+        <label class="checkbox">
+          <input type="checkbox" id="use-llm" checked />
+          Réécriture Ollama
+        </label>
+        <button id="btn-generate" type="button">Générer</button>
+      </div>
+    </section>
+
+    <section id="status" class="panel status hidden">
+      <div class="meta">
+        <p><strong>CV adapté</strong></p>
+        <p><strong>Titre :</strong> <span id="result-title">—</span></p>
+        <p><strong>Tags :</strong> <span id="result-tags" class="tags">—</span></p>
+        <p><strong>LLM :</strong> <span id="result-llm">—</span></p>
+      </div>
+      <ul id="warnings" class="warnings hidden"></ul>
+    </section>
+
+    <section class="panel">
+      <div class="row spread">
+        <label for="preview">CV master — profil par défaut</label>
+        <button id="btn-default" type="button" class="secondary small">Recharger</button>
+      </div>
+      <p id="default-title" class="muted default-meta"></p>
+      <pre id="preview" class="preview">Chargement du profil par défaut…</pre>
+      <div class="row">
+        <button id="btn-copy" type="button" class="secondary">Copier Markdown</button>
+        <button id="btn-download" type="button" class="secondary">Télécharger .md</button>
+        <button id="btn-download-pdf" type="button" class="secondary">Télécharger .pdf</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="row spread">
+        <h2>Historique</h2>
+        <div class="row">
+          <button id="btn-purge" type="button" class="secondary small danger-text">Vider</button>
+          <button id="btn-refresh" type="button" class="secondary small">Rafraîchir</button>
+        </div>
+      </div>
+      <ul id="history" class="history"></ul>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

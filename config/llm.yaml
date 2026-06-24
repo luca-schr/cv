@@ -2,6 +2,5 @@ enabled: true
 provider: ollama
 model: llama3.2
 base_url: http://localhost:11434
-openai_model: gpt-4o-mini
 temperature: 0.2
 timeout_seconds: 120

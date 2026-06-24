@@ -1,63 +1,106 @@
-# CV — Lucas Schrever
+# CV Generator — Backend FastAPI + SQLite
 
-Markdown + PDF adapté à chaque offre.
+API locale pour gérer profils, offres et générations de CV.
 
-## Usage
+## Installation
 
 ```powershell
 cd "D:\digital projects\_Projects\cv"
-
-# 1. Créer jobs/ma-offre.txt  (URL ou texte collé de l'offre)
-# 2. Générer
-.\cv.ps1 ma-offre
-
-# → output/cv-ma-offre.md + .pdf
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
 
-Le nom de la commande = nom du fichier dans `jobs/` sans `.txt`  
-(`.\cv.ps1 webmaster` → `jobs/webmaster.txt`)
+Ollama (optionnel, réécriture LLM) :
 
 ```powershell
-.\cv.ps1 ma-offre -NoLlm    # sans Ollama (plus rapide)
-.\cv.ps1 ma-offre -MdOnly   # Markdown seulement
-.\cv.ps1 -Master            # régénère cv.md
-```
-
-**Terminal :** `LLM : réécriture appliquée` = Ollama OK · `LLM indisponible` = fallback tags.
-
-## Pandoc manuel
-
-```powershell
-$env:WEASYPRINT_DLL_DIRECTORIES = "C:\msys64\mingw64\bin"
-pandoc output/cv-ma-offre.md -o output/cv-ma-offre.pdf --pdf-engine=weasyprint --css=style.css
-```
-
-Depuis la racine du projet. Idéal après édition manuelle du `.md`.
-
-## Installation (une fois)
-
-Python 3.14+, [Pandoc](https://pandoc.org/), [WeasyPrint](https://weasyprint.org/) + MSYS2, [Ollama](https://ollama.com).
-
-```powershell
-python -m pip install -r requirements.txt
 ollama pull llama3.2
 ```
 
-Ollama doit tourner en arrière-plan. Pas de clé API.
+L'app Ollama doit tourner (icône barre des tâches). Vérifie sur http://127.0.0.1:8000/api/llm/status
 
-Si `pandoc` / `weasyprint` introuvables :
+Config : `config/llm.yaml` — modèle, URL, température.
+
+## Lancer l'API
 
 ```powershell
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-$env:WEASYPRINT_DLL_DIRECTORIES = "C:\msys64\mingw64\bin"
+uvicorn app.main:app --reload
 ```
 
-## Contenu du CV
+- API : http://127.0.0.1:8000
+- **Interface web** : http://127.0.0.1:8000
+- Swagger : http://127.0.0.1:8000/docs
+- Base SQLite : `data/cv.db` (créée automatiquement)
 
-Éditer **`cv-data.yaml`**, puis `.\cv.ps1 -Master` et `.\cv.ps1 ma-offre`.
+## Modèle de données
 
-Config : `config/llm.yaml` (Ollama), `config/analysis.yaml` (tags).
+| Table | Rôle |
+|-------|------|
+| `profiles` | Contenu CV (JSON) |
+| `job_postings` | Offres collées |
+| `generations` | CV générés (markdown) |
 
-## Git
+## Interface web
 
-Ignorés : `jobs/`, `output/`, `*.pdf`.
+Ouvre http://127.0.0.1:8000 après avoir lancé uvicorn :
+
+1. Colle l'offre
+2. Coche/décoche Ollama
+3. **Générer** → aperçu Markdown, copie, téléchargement
+4. Historique des générations précédentes
+
+## Endpoints
+
+### Profils
+
+```
+GET    /api/profiles
+GET    /api/profiles/{id}
+POST   /api/profiles
+PATCH  /api/profiles/{id}
+DELETE /api/profiles/{id}
+```
+
+### Offres
+
+```
+GET    /api/jobs
+POST   /api/jobs          { "raw_text": "...", "label": "webmaster" }
+GET    /api/jobs/{id}
+DELETE /api/jobs/{id}
+```
+
+### Générations
+
+```
+GET    /api/generations
+POST   /api/generations   { "job_text": "...", "use_llm": true }
+GET    /api/generations/{id}
+```
+
+`job_id` + `profile_id` optionnels. Sans profil → profil par défaut (seed au 1er démarrage).
+
+## Exemple rapide
+
+```powershell
+# Générer un CV depuis une offre collée
+curl -X POST http://127.0.0.1:8000/api/generations `
+  -H "Content-Type: application/json" `
+  -d '{"job_text": "Développeur Fullstack React NestJS H/F...", "use_llm": true}'
+```
+
+## Structure
+
+```
+app/
+  static/           Interface web
+  services/         analyzer, renderer, llm, pdf…
+config/             analysis.yaml, llm.yaml
+assets/
+  lucas-schrever.jpg   Photo profil (PDF)
+style.css           Mise en page PDF
+data/
+  cv.db             SQLite (gitignored)
+```
+
+PDF : Pandoc + WeasyPrint + `style.css` + photo dans `assets/`. Markdown seul en base.
