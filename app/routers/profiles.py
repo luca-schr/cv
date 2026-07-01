@@ -10,6 +10,7 @@ from app.schemas import ProfileCreate, ProfileMarkdownRead, ProfileRead, Profile
 from app.seed import DEFAULT_PROFILE
 from app.services.pdf import export_pdf
 from app.services.renderer import build_markdown
+from app.services.slugify import build_cv_basename
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
 
@@ -56,11 +57,11 @@ def download_default_pdf(db: Session = Depends(get_db)):
     title = data["header"]["title_default"]
     markdown = build_markdown(data)
     pdf_bytes = export_pdf(markdown)
-    slug = title.lower().replace(" ", "-")[:40] or "cv-master"
+    slug = build_cv_basename(title)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="cv-{slug}.pdf"'},
+        headers={"Content-Disposition": f'attachment; filename="{slug}.pdf"'},
     )
 
 
@@ -143,14 +144,13 @@ def delete_profile(profile_id: int, db: Session = Depends(get_db)):
 
 def get_default_profile(db: Session) -> Profile:
     profile = db.query(Profile).filter(Profile.is_default.is_(True)).first()
-    if profile:
-        return profile
-    profile = Profile(
-        name="Lucas Schrever",
-        data=json.dumps(DEFAULT_PROFILE, ensure_ascii=False),
-        is_default=True,
-    )
-    db.add(profile)
-    db.commit()
-    db.refresh(profile)
+    if not profile:
+        profile = Profile(
+            name="Lucas Schrever",
+            data=json.dumps(DEFAULT_PROFILE, ensure_ascii=False),
+            is_default=True,
+        )
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
     return profile

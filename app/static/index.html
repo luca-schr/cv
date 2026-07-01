@@ -4,55 +4,96 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CV Generator</title>
+  <link rel="icon" href="/favicon.ico" type="image/png" />
   <link rel="stylesheet" href="/static/app.css" />
 </head>
 <body>
-  <main class="layout">
-    <header class="header">
-      <h1>CV Generator</h1>
-      <p class="muted">Colle une offre → génère un CV adapté</p>
-      <p id="ollama-status" class="ollama-status muted">Ollama : vérification…</p>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="/favicon.ico" alt="" class="brand-logo" width="32" height="32" />
+        <div>
+          <h1>CV Generator</h1>
+          <p class="muted">Offre → CV adapté → export MD / PDF</p>
+        </div>
+      </div>
+      <div class="topbar-meta">
+        <span id="ollama-status" class="ollama-pill muted">Ollama : vérification…</span>
+      </div>
     </header>
 
-    <section class="panel">
-      <label for="job-text">Offre d'emploi</label>
-      <textarea id="job-text" rows="12" placeholder="Colle le texte de l'offre ici…"></textarea>
+    <div class="workspace">
+      <aside class="col-input">
+        <section class="panel panel-job">
+          <div class="panel-head">
+            <h2>Offre d'emploi</h2>
+            <span class="panel-hint">Colle le texte complet (missions + compétences)</span>
+          </div>
+          <textarea id="job-text" class="editor-field" rows="14" placeholder="Intitulé, employeur, missions, stack…"></textarea>
 
-      <div class="row">
-        <label class="checkbox">
-          <input type="checkbox" id="use-llm" checked />
-          Réécriture Ollama
-        </label>
-        <button id="btn-generate" type="button">Générer</button>
-      </div>
-    </section>
+          <div class="options-row">
+            <label class="checkbox">
+              <input type="checkbox" id="use-llm" checked />
+              Ollama
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" id="english" />
+              En anglais
+            </label>
+          </div>
 
-    <section id="status" class="panel status hidden">
-      <div class="meta">
-        <p><strong>CV adapté</strong></p>
-        <p><strong>Titre :</strong> <span id="result-title">—</span></p>
-        <p><strong>Tags :</strong> <span id="result-tags" class="tags">—</span></p>
-        <p><strong>LLM :</strong> <span id="result-llm">—</span></p>
-      </div>
-      <ul id="warnings" class="warnings hidden"></ul>
-    </section>
+          <button id="btn-generate" type="button" class="btn-generate">Générer le CV</button>
 
-    <section class="panel">
-      <div class="row spread">
-        <label for="preview">CV master — profil par défaut</label>
-        <button id="btn-default" type="button" class="secondary small">Recharger</button>
-      </div>
-      <p id="default-title" class="muted default-meta"></p>
-      <pre id="preview" class="preview">Chargement du profil par défaut…</pre>
-      <div class="row">
-        <button id="btn-copy" type="button" class="secondary">Copier Markdown</button>
-        <button id="btn-download" type="button" class="secondary">Télécharger .md</button>
-        <button id="btn-download-pdf" type="button" class="secondary">Télécharger .pdf</button>
-      </div>
-    </section>
+          <div id="gen-progress" class="gen-progress hidden" aria-live="polite">
+            <div class="gen-progress-head">
+              <span id="gen-progress-label">Préparation…</span>
+              <strong id="gen-progress-pct">0%</strong>
+            </div>
+            <div class="gen-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="gen-progress-bar" class="gen-progress-bar"></div>
+            </div>
+            <ol id="gen-progress-steps" class="gen-steps">
+              <li data-step="analyze">Analyse de l'offre</li>
+              <li data-step="meta">Poste &amp; entreprise</li>
+              <li data-step="adapt">Adaptation Ollama</li>
+              <li data-step="render">Rendu markdown</li>
+            </ol>
+          </div>
+        </section>
 
-    <section class="panel">
-      <div class="row spread">
+        <section id="status" class="panel status hidden">
+          <h2 class="panel-title">Résultat</h2>
+          <dl class="meta-grid">
+            <div><dt>Poste (offre)</dt><dd id="result-job-title">—</dd></div>
+            <div><dt>Titre CV</dt><dd id="result-title">—</dd></div>
+            <div><dt>Entreprise</dt><dd id="result-company">—</dd></div>
+            <div><dt>Tags</dt><dd id="result-tags" class="tags">—</dd></div>
+            <div><dt>Moteur</dt><dd id="result-llm">—</dd></div>
+          </dl>
+          <ul id="warnings" class="warnings hidden"></ul>
+        </section>
+      </aside>
+
+      <section class="col-preview panel panel-preview">
+        <div class="panel-head spread">
+          <div>
+            <h2 id="preview-heading">Aperçu CV</h2>
+            <p id="default-title" class="muted default-meta"></p>
+          </div>
+          <button id="btn-default" type="button" class="secondary small">Profil master</button>
+        </div>
+        <textarea id="preview" class="preview editor-field" spellcheck="false"
+          placeholder="Markdown du CV — modifiable avant export…">Chargement…</textarea>
+        <div class="export-bar">
+          <button id="btn-copy" type="button" class="secondary">Copier</button>
+          <button id="btn-download" type="button" class="secondary">.md</button>
+          <button id="btn-download-pdf" type="button" class="secondary">.pdf</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel panel-history">
+      <div class="panel-head spread">
         <h2>Historique</h2>
         <div class="row">
           <button id="btn-purge" type="button" class="secondary small danger-text">Vider</button>
@@ -61,7 +102,7 @@
       </div>
       <ul id="history" class="history"></ul>
     </section>
-  </main>
+  </div>
 
   <div id="toast" class="toast hidden"></div>
   <script src="/static/app.js"></script>

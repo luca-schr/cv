@@ -55,12 +55,15 @@ class GenerateRequest(BaseModel):
     job_id: int | None = None
     job_text: str | None = None
     use_llm: bool = True
+    english: bool = False
 
 
 class GenerationRead(BaseModel):
     id: int
     profile_id: int
     job_id: int
+    job_label: str | None = None
+    job_detected_title: str | None = None
     title: str
     markdown: str
     use_llm: bool
@@ -75,3 +78,8 @@ class GenerationRead(BaseModel):
 class GenerationsPurgeRead(BaseModel):
     deleted_generations: int
     deleted_jobs: int
+
+
+class MarkdownPdfRequest(BaseModel):
+    markdown: str = Field(min_length=20)
+    filename: str | None = Field(default=None, max_length=80)

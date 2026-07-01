@@ -1,9 +1,5 @@
 scoring:
-  experience_title_tag_weight: 3
-  profil_keyword_limit: 8
-  max_bullets_recent: 3
-  max_bullets_older: 2
-  profil_max_chars: 380
+  profil_max_chars: 500
 
 noise_substrings:
   - indeed
@@ -11,6 +7,8 @@ noise_substrings:
   - cookies
   - cloudflare
   - just a moment
+  - gestion des cookies
+  - chargement en cours
 
 title_hints:
   - développeur
@@ -21,6 +19,12 @@ title_hints:
   - intégrateur
   - fullstack
   - full stack
+  - backend
+  - frontend
+  - junior
+  - senior
+  - stagiaire
+  - alternant
 
 title_skip:
   - salaire
@@ -29,23 +33,28 @@ title_skip:
 
 tag_aliases:
   react: [react, reactjs, react.js]
-  tanstack: [tanstack, tanstack query, react-query, react query]
   nextjs: [next.js, nextjs, next]
-  nestjs: [nestjs, nest.js]
+  vue: [vue, vue.js, vuejs]
+  nodejs: [node.js, nodejs, node]
+  express: [express, express.js]
+  nestjs: [nestjs, nest.js, nest]
+  tailwind: [tailwind, tailwindcss, tailwind css]
+  mongodb: [mongodb, mongo]
+  mysql: [mysql]
+  postgresql: [postgresql, postgres]
   wordpress: [wordpress, wp, cms]
+  tanstack: [tanstack, tanstack query, react-query, react query]
+  axios: [axios]
+  docker: [docker]
+  github actions: [github actions, ci/cd, cicd]
+  hooks: [react hooks, hooks]
   javascript: [javascript, js, ecmascript]
   typescript: [typescript, ts]
-  php: [php]
-  seo: [seo, référencement, referencement]
-  docker: [docker]
-  git: [git, github]
-  vue: [vue, vue.js, vuejs]
-  dotnet: [.net, dotnet, asp.net]
-  graphql: [graphql]
-  postgresql: [postgresql, postgres]
-  agile: [agile, scrum]
-  ux: [ux, ui, ux/ui]
-  webmaster: [webmaster]
-  integrateur: [intégrateur, integrateur]
+  php: [php, symfony]
+  git: [git, github, gitlab]
+  sql: [sql, mysql, postgresql, postgres, mariadb]
+  html: [html]
+  css: [css]
   api: [api, rest, restful]
   fullstack: [fullstack, full stack, full-stack]
+  seo: [seo, référencement, referencement]

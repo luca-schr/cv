@@ -22,7 +22,7 @@ body {
 header.cv-header {
   position: relative;
   margin: 0 0 0.65rem;
-  padding: 0 4.6rem 0.55rem 0;
+  padding: 0 5.35rem 0.55rem 0;
   border-bottom: 1.5px solid var(--color-accent);
 }
 
@@ -40,6 +40,22 @@ header.cv-header p {
   color: var(--color-muted);
 }
 
+header.cv-header .cv-contact-primary,
+header.cv-header .cv-contact-links {
+  margin: 0.04rem 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--color-muted);
+}
+
+header.cv-header .cv-contact-links a {
+  white-space: nowrap;
+}
+
+header.cv-header .cv-contact-primary a {
+  color: var(--color-text);
+}
+
 header.cv-header p strong,
 header.cv-header strong {
   display: block;
@@ -53,11 +69,10 @@ header.cv-header img.photo {
   position: absolute;
   top: 0;
   right: 0;
-  width: 3.85rem;
-  height: 3.85rem;
-  border-radius: 4px;
+  width: 4.65rem;
+  height: 4.65rem;
   object-fit: cover;
-  border: 1.5px solid var(--color-accent-light);
+  border: none;
 }
 
 h2 {

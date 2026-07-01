@@ -10,6 +10,7 @@ from app.schemas import GenerateRequest, GenerationRead, GenerationsPurgeRead
 from app.services.analyzer import analyze_job
 from app.services.generator import generate_cv, tags_from_json, tags_to_json
 from app.services.pdf import export_pdf
+from app.services.slugify import build_cv_basename
 from app.routers.profiles import get_default_profile
 
 router = APIRouter(prefix="/generations", tags=["generations"])
@@ -21,6 +22,8 @@ def _to_read(gen: Generation, db: Session) -> GenerationRead:
         id=gen.id,
         profile_id=gen.profile_id,
         job_id=gen.job_id,
+        job_label=job.label if job else None,
+        job_detected_title=job.detected_title if job else None,
         title=gen.title,
         markdown=gen.markdown,
         use_llm=gen.use_llm,
@@ -79,12 +82,13 @@ def download_pdf(generation_id: int, db: Session = Depends(get_db)):
     gen = db.get(Generation, generation_id)
     if not gen:
         raise HTTPException(404, "Génération introuvable")
+    job = db.get(JobPosting, gen.job_id)
     pdf_bytes = export_pdf(gen.markdown)
-    slug = gen.title.lower().replace(" ", "-")[:40] or "cv"
+    slug = build_cv_basename(gen.title, job.label if job else None)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="cv-{slug}.pdf"'},
+        headers={"Content-Disposition": f'attachment; filename="{slug}.pdf"'},
     )
 
 
@@ -108,13 +112,9 @@ def create_generation(body: GenerateRequest, db: Session = Depends(get_db)):
         job_text = job.raw_text
     elif body.job_text:
         job_text = body.job_text
-        cv_data_preview = json.loads(profile.data)
-        analysis = analyze_job(job_text, "text", cv_data_preview["header"]["title_default"])
         job = JobPosting(
             raw_text=job_text,
             source="text",
-            detected_title=analysis.title,
-            detected_tags=tags_to_json(analysis.tags),
         )
         db.add(job)
         db.flush()
@@ -122,11 +122,13 @@ def create_generation(body: GenerateRequest, db: Session = Depends(get_db)):
         raise HTTPException(400, "Fournir job_id ou job_text")
 
     cv_data = json.loads(profile.data)
-    result = generate_cv(cv_data, job_text, use_llm=body.use_llm)
+    result = generate_cv(cv_data, job_text, use_llm=body.use_llm, english=body.english)
 
-    if job and not job.detected_title:
+    if job:
         job.detected_title = result.analysis.title
         job.detected_tags = tags_to_json(result.analysis.tags)
+        if result.analysis.company:
+            job.label = result.analysis.company
 
     gen = Generation(
         profile_id=profile.id,

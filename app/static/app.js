@@ -2,6 +2,7 @@ const $ = (sel) => document.querySelector(sel);
 
 const jobText = $("#job-text");
 const useLlm = $("#use-llm");
+const english = $("#english");
 const btnGenerate = $("#btn-generate");
 const btnCopy = $("#btn-copy");
 const btnDownload = $("#btn-download");
@@ -12,13 +13,29 @@ const btnDefault = $("#btn-default");
 const statusPanel = $("#status");
 const preview = $("#preview");
 const defaultTitle = $("#default-title");
+const previewHeading = $("#preview-heading");
 const history = $("#history");
 const toast = $("#toast");
 
-let lastMarkdown = "";
+const genProgress = $("#gen-progress");
+const genProgressBar = $("#gen-progress-bar");
+const genProgressLabel = $("#gen-progress-label");
+const genProgressPct = $("#gen-progress-pct");
+const genProgressTrack = genProgress?.querySelector(".gen-progress-track");
+const genStepEls = () => [...document.querySelectorAll("#gen-progress-steps [data-step]")];
+
 let lastTitle = "cv";
+let lastCompany = "";
 let lastGenerationId = null;
 let isDefaultView = true;
+let progressTimer = null;
+
+const PROGRESS_PHASES = [
+  { until: 22, step: "analyze", label: "Analyse et nettoyage de l'offre…" },
+  { until: 38, step: "meta", label: "Extraction poste et entreprise…" },
+  { until: 90, step: "adapt", label: "Adaptation du CV avec Ollama…" },
+  { until: 97, step: "render", label: "Rendu markdown final…" },
+];
 
 function showToast(msg) {
   toast.textContent = msg;
@@ -26,9 +43,82 @@ function showToast(msg) {
   setTimeout(() => toast.classList.add("hidden"), 2500);
 }
 
-function setLoading(loading) {
+function setGenerateBusy(loading) {
   btnGenerate.disabled = loading;
-  btnGenerate.textContent = loading ? "Génération…" : "Générer";
+  jobText.disabled = loading;
+  useLlm.disabled = loading || useLlm.disabled;
+  english.disabled = loading;
+  btnGenerate.textContent = loading ? "Génération en cours…" : "Générer le CV";
+}
+
+function phaseForPct(pct) {
+  return PROGRESS_PHASES.find((p) => pct <= p.until) || PROGRESS_PHASES.at(-1);
+}
+
+function updateProgressUI(pct, forceDone = false) {
+  const clamped = Math.min(100, Math.max(0, Math.round(pct)));
+  const phase = forceDone
+    ? { step: "render", label: "Terminé" }
+    : phaseForPct(clamped);
+
+  genProgressBar.style.width = `${clamped}%`;
+  genProgressPct.textContent = `${clamped}%`;
+  genProgressLabel.textContent = phase.label;
+  if (genProgressTrack) {
+    genProgressTrack.setAttribute("aria-valuenow", String(clamped));
+  }
+
+  genStepEls().forEach((el) => {
+    const step = el.dataset.step;
+    el.classList.remove("active", "done");
+    if (forceDone || clamped >= 100) {
+      el.classList.add("done");
+    } else if (step === phase.step) {
+      el.classList.add("active");
+    } else {
+      const phaseIdx = PROGRESS_PHASES.findIndex((p) => p.step === step);
+      const currentIdx = PROGRESS_PHASES.findIndex((p) => p.step === phase.step);
+      if (phaseIdx >= 0 && phaseIdx < currentIdx) el.classList.add("done");
+    }
+  });
+}
+
+function startProgressSimulation() {
+  stopProgressSimulation();
+  genProgress.classList.remove("hidden");
+  let pct = 0;
+  let started = Date.now();
+  updateProgressUI(0);
+
+  progressTimer = setInterval(() => {
+    const elapsed = Date.now() - started;
+    const phase = phaseForPct(pct);
+    const phaseIdx = PROGRESS_PHASES.indexOf(phase);
+    const baseSpeed = useLlm.checked ? [0.35, 0.28, 0.12, 0.18][phaseIdx] : [0.55, 0.35, 0.08, 0.12][phaseIdx];
+    const decay = 1 - pct / 100;
+    const bump = baseSpeed * decay * (0.85 + Math.random() * 0.3);
+    pct = Math.min(96, pct + bump);
+    if (elapsed > 45000) pct = Math.min(98, pct + 0.05);
+    updateProgressUI(pct);
+  }, 280);
+}
+
+function finishProgress(success) {
+  stopProgressSimulation();
+  if (success) {
+    updateProgressUI(100, true);
+    setTimeout(() => genProgress.classList.add("hidden"), 900);
+  } else {
+    genProgress.classList.add("hidden");
+    updateProgressUI(0);
+  }
+}
+
+function stopProgressSimulation() {
+  if (progressTimer) {
+    clearInterval(progressTimer);
+    progressTimer = null;
+  }
 }
 
 function renderWarnings(warnings) {
@@ -43,14 +133,53 @@ function renderWarnings(warnings) {
 }
 
 function slugify(text) {
-  return (text || "cv")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40) || "cv";
+  const raw = String(text ?? "").trim();
+  if (!raw) return "";
+  return (
+    raw
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/œ/gi, "oe")
+      .replace(/æ/gi, "ae")
+      .replace(/ß/g, "ss")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 40) || ""
+  );
 }
 
-/** Incrémente v2, v3… si le même nom de base a déjà été téléchargé (localStorage). */
+function normalizeBaseSlug(slug) {
+  return (slug || "").replace(/^cv-+/, "").replace(/^-+/, "") || "master";
+}
+
+function shortenSlug(slug, maxLen) {
+  const s = (slug || "").replace(/^-|-$/g, "");
+  if (!s) return "";
+  return s.length > maxLen ? s.slice(0, maxLen).replace(/-+$/g, "") : s;
+}
+
+function buildCvBasename(roleSlug, companySlug) {
+  const role = normalizeBaseSlug(roleSlug);
+  const company = shortenSlug(companySlug, 18);
+  if (company && company !== "cv") {
+    return `cv-${role}-${company}`;
+  }
+  return `cv-${role}`;
+}
+
+function getPreviewMarkdown() {
+  return preview.value.trim();
+}
+
+function syncExportButtons() {
+  const hasContent = getPreviewMarkdown().length > 0;
+  btnCopy.disabled = !hasContent;
+  btnDownload.disabled = !hasContent;
+  btnDownloadPdf.disabled = !hasContent;
+}
+
 function nextDownloadFilename(basename, ext) {
   const storageKey = `cv-dl:${basename}.${ext}`;
   const version = parseInt(localStorage.getItem(storageKey) || "0", 10) + 1;
@@ -69,33 +198,37 @@ function triggerDownload(blob, filename) {
 
 function showDefaultPreview(data) {
   isDefaultView = true;
-  lastMarkdown = data.markdown;
-  lastTitle = slugify(data.title);
+  lastTitle = normalizeBaseSlug(slugify(data.title));
+  lastCompany = "";
   lastGenerationId = null;
-  btnDownloadPdf.disabled = false;
 
-  defaultTitle.textContent = data.title;
-  preview.textContent = data.markdown;
+  previewHeading.textContent = "Aperçu CV";
+  defaultTitle.textContent = `Profil master — ${data.title}`;
+  preview.value = data.markdown;
   preview.classList.remove("mode-adapted");
   statusPanel.classList.add("hidden");
   renderWarnings([]);
+  syncExportButtons();
 }
 
 function showResult(data) {
   isDefaultView = false;
-  lastMarkdown = data.markdown;
-  lastTitle = slugify(data.title);
+  lastTitle = normalizeBaseSlug(slugify(data.title));
+  lastCompany = slugify(data.job_label || "");
   lastGenerationId = data.id ?? null;
-  btnDownloadPdf.disabled = !lastGenerationId;
 
-  defaultTitle.textContent = "CV adapté à une offre";
+  previewHeading.textContent = "CV adapté";
+  defaultTitle.textContent = "Modifiable avant export";
+  $("#result-job-title").textContent = data.job_detected_title || "—";
   $("#result-title").textContent = data.title;
+  $("#result-company").textContent = data.job_label || "—";
   $("#result-tags").textContent = data.detected_tags?.join(", ") || "—";
-  $("#result-llm").textContent = data.llm_applied ? "appliqué" : "non (fallback tags)";
+  $("#result-llm").textContent = data.llm_applied ? "Ollama" : "template statique";
   renderWarnings(data.warnings);
-  preview.textContent = data.markdown;
+  preview.value = data.markdown;
   preview.classList.add("mode-adapted");
   statusPanel.classList.remove("hidden");
+  syncExportButtons();
 }
 
 async function loadDefaultMarkdown() {
@@ -104,8 +237,9 @@ async function loadDefaultMarkdown() {
     if (!res.ok) throw new Error("Profil par défaut introuvable");
     showDefaultPreview(await res.json());
   } catch (e) {
-    preview.textContent = "Impossible de charger le profil par défaut.";
+    preview.value = "";
     showToast(e.message);
+    syncExportButtons();
   }
 }
 
@@ -116,25 +250,29 @@ async function generate() {
     return;
   }
 
-  setLoading(true);
+  setGenerateBusy(true);
+  startProgressSimulation();
   try {
     const res = await fetch("/api/generations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ job_text: text, use_llm: useLlm.checked }),
+      body: JSON.stringify({ job_text: text, use_llm: useLlm.checked, english: english.checked }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Erreur ${res.status}`);
     }
     const data = await res.json();
+    finishProgress(true);
     showResult(data);
     loadHistory();
     showToast("CV généré.");
   } catch (e) {
+    finishProgress(false);
     showToast(e.message || "Erreur de génération.");
   } finally {
-    setLoading(false);
+    setGenerateBusy(false);
+    checkOllama();
   }
 }
 
@@ -142,7 +280,7 @@ async function loadGeneration(id) {
   const res = await fetch(`/api/generations/${id}`);
   if (!res.ok) return;
   showResult(await res.json());
-  preview.scrollIntoView({ behavior: "smooth", block: "start" });
+  preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 async function loadHistory() {
@@ -158,11 +296,10 @@ async function loadHistory() {
       (g) => `
     <li>
       <div class="history-main">
-        <button type="button" data-id="${g.id}" class="history-open">${g.title}</button>
+        <button type="button" data-id="${g.id}" class="history-open">${escapeHtml(g.title)}</button>
         <div class="date">${new Date(g.created_at).toLocaleString("fr-FR")}</div>
       </div>
       <div class="history-actions">
-        <button type="button" class="btn-icon" data-pdf="${g.id}" data-slug="${slugify(g.title)}" title="PDF">PDF</button>
         <button type="button" class="btn-icon danger" data-del="${g.id}" title="Supprimer">✕</button>
       </div>
     </li>`
@@ -171,54 +308,67 @@ async function loadHistory() {
   history.querySelectorAll(".history-open").forEach((btn) => {
     btn.addEventListener("click", () => loadGeneration(btn.dataset.id));
   });
-  history.querySelectorAll("[data-pdf]").forEach((btn) => {
-    btn.addEventListener("click", () => downloadPdf(btn.dataset.pdf, btn.dataset.slug));
-  });
   history.querySelectorAll("[data-del]").forEach((btn) => {
     btn.addEventListener("click", () => deleteGeneration(btn.dataset.del));
   });
 }
 
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 btnGenerate.addEventListener("click", generate);
 btnDefault.addEventListener("click", loadDefaultMarkdown);
+preview.addEventListener("input", syncExportButtons);
 
 btnCopy.addEventListener("click", async () => {
-  if (!lastMarkdown) return;
-  await navigator.clipboard.writeText(lastMarkdown);
+  const markdown = getPreviewMarkdown();
+  if (!markdown) return;
+  await navigator.clipboard.writeText(markdown);
   showToast("Markdown copié.");
 });
 
 btnDownload.addEventListener("click", () => {
-  if (!lastMarkdown) return;
-  const suffix = isDefaultView ? "master" : lastTitle;
-  const blob = new Blob([lastMarkdown], { type: "text/markdown;charset=utf-8" });
-  triggerDownload(blob, nextDownloadFilename(`cv-${suffix}`, "md"));
+  const markdown = getPreviewMarkdown();
+  if (!markdown) return;
+  const role = isDefaultView ? "master" : lastTitle;
+  const company = isDefaultView ? "" : lastCompany;
+  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+  triggerDownload(blob, nextDownloadFilename(buildCvBasename(role, company), "md"));
 });
 
-async function downloadPdf(id, slug) {
+async function downloadPdf() {
+  const markdown = getPreviewMarkdown();
+  if (!markdown) {
+    showToast("Rien à exporter.");
+    return;
+  }
   try {
-    const url = id
-      ? `/api/generations/${id}/pdf`
-      : "/api/profiles/default/pdf";
-    const res = await fetch(url);
+    const role = isDefaultView ? "master" : lastTitle;
+    const company = isDefaultView ? "" : lastCompany;
+    const basename = buildCvBasename(role, company);
+    const res = await fetch("/api/export/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markdown, filename: basename }),
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Erreur PDF ${res.status}`);
     }
     const blob = await res.blob();
-    const base = id ? slug || lastTitle : isDefaultView ? "master" : lastTitle;
-    const filename = nextDownloadFilename(`cv-${base}`, "pdf");
-    triggerDownload(blob, filename);
-    showToast(`PDF : ${filename}`);
+    triggerDownload(blob, nextDownloadFilename(basename, "pdf"));
+    showToast(`PDF téléchargé.`);
   } catch (e) {
-    showToast(e.message || "PDF indisponible (Pandoc/WeasyPrint ?).");
+    showToast(e.message || "PDF indisponible (Pandoc requis).");
   }
 }
 
-btnDownloadPdf.addEventListener("click", () => {
-  if (isDefaultView) downloadPdf();
-  else downloadPdf(lastGenerationId);
-});
+btnDownloadPdf.addEventListener("click", downloadPdf);
 
 async function deleteGeneration(id) {
   if (!confirm("Supprimer ce CV de l'historique ?")) return;
@@ -255,13 +405,15 @@ async function checkOllama() {
   try {
     const res = await fetch("/api/llm/status");
     const data = await res.json();
-    el.textContent = data.message;
-    el.classList.remove("ok", "warn");
-    el.classList.add(data.server_ok && data.model_ready ? "ok" : "warn");
-    useLlm.disabled = !(data.server_ok && data.model_ready);
-    if (!data.server_ok || !data.model_ready) useLlm.checked = false;
+    const ok = data.server_ok && data.model_ready;
+    el.textContent = ok ? `Ollama · ${data.model}` : data.message.replace(/—/g, "·");
+    el.classList.remove("ok", "warn", "muted");
+    el.classList.add(ok ? "ok" : "warn");
+    useLlm.disabled = !ok;
+    if (!ok) useLlm.checked = false;
   } catch {
-    el.textContent = "Ollama : statut indisponible";
+    el.textContent = "Ollama indisponible";
+    el.classList.remove("ok");
     el.classList.add("warn");
   }
 }
