@@ -1,43 +1,17 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
 .venv/
 venv/
-env/
-
-# Build / packaging
-build/
-dist/
-*.egg-info/
-
-# Tests & outils
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
 
 # Données locales & secrets
 data/
-*.db
 .env
 .env.*
 
-# Exports PDF (générés à la demande)
+# Exports générés
 *.pdf
 
-# Ancien CLI (artefacts résiduels)
-output/
-jobs/
-
-# Éditeur & OS
-.vscode/
-.idea/
-*.swp
-*~
+# OS
 .DS_Store
 Thumbs.db
-desktop.ini
