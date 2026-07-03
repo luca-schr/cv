@@ -35,51 +35,65 @@ TECHNOS_EXTENDED = [
     "CI/CD",
     "SEO",
     "Responsive design",
+    "OWASP",
+    "Sécurisation API",
+]
+
+SKILL_CATEGORIES = [
+    "Front-end",
+    "Back-end",
+    "Data & CMS",
+    "DevOps",
+    "Cybersécurité",
 ]
 
 DEFAULT_COMPETENCES = [
     {
-        "label": "React & interfaces",
+        "label": "Front-end",
         "items": [
-            "React (Hooks, composants, état local)",
-            "Next.js (pages, routing, rendu SSR)",
-            "TanStack Query (cache, requêtes, mutations)",
-            "Consommation API (Axios, REST)",
-            "TypeScript / JavaScript",
-        ],
-    },
-    {
-        "label": "Vue.js & intégration",
-        "items": [
-            "Vue.js (Composition API, composants)",
+            "React & Hooks",
+            "Next.js",
+            "Vue.js",
+            "TypeScript",
+            "TanStack Query",
             "Tailwind CSS",
-            "HTML / CSS responsive",
         ],
     },
     {
-        "label": "Node.js & back-end",
+        "label": "Back-end",
         "items": [
-            "Express (routes, middleware, controllers)",
-            "NestJS (modules, guards, validation)",
-            "Authentification (JWT, sessions)",
-            "Modélisation API REST",
-            "PHP & thèmes WordPress",
+            "Node.js",
+            "Express",
+            "NestJS",
+            "JWT / auth",
+            "API REST",
+            "PHP",
         ],
     },
     {
-        "label": "Données & CMS",
+        "label": "Data & CMS",
         "items": [
-            "MongoDB (schémas, requêtes)",
+            "MongoDB",
             "MySQL / PostgreSQL",
-            "WordPress (thèmes, plugins, headless)",
+            "WordPress",
         ],
     },
     {
-        "label": "DevOps & livraison",
+        "label": "DevOps",
         "items": [
-            "Docker (conteneurs, déploiement)",
-            "GitHub Actions (CI/CD)",
-            "Git (workflow, revues)",
+            "Docker",
+            "GitHub Actions",
+            "Git",
+            "CI/CD",
+        ],
+    },
+    {
+        "label": "Cybersécurité",
+        "items": [
+            "OWASP",
+            "Sécurisation API REST",
+            "Auth & sessions",
+            "Bonnes pratiques web",
         ],
     },
 ]
@@ -105,11 +119,10 @@ DEFAULT_PROFILE = {
     "technos_extended": TECHNOS_EXTENDED,
     "profil": {
         "text": (
-            "Développeur fullstack, j'accompagne la conception et la livraison de produits web : "
-            "applications React / Next.js, interfaces Vue.js, API Node.js (Express / NestJS) et sites WordPress. "
-            "Mon approche couvre le cadrage technique, le développement front et back, la connexion aux services "
-            "(REST, bases SQL / NoSQL), la sécurisation des accès et la mise en production (Docker, CI/CD). "
-            "Objectif : des livrables maintenables, performants et alignés sur les besoins métier."
+            "Je conçois et livre des produits web de bout en bout — interfaces React et Next.js, "
+            "API Node.js et sites WordPress — en gardant le fil entre le besoin métier, le code "
+            "et la mise en production. Mon approche : comprendre le contexte, itérer avec les "
+            "équipes, et livrer des bases maintenables, sécurisées et prêtes pour la prod."
         ),
         "services": [
             "Applications web & SaaS — React, Next.js, état serveur (TanStack Query), intégration API",
@@ -122,32 +135,32 @@ DEFAULT_PROFILE = {
         {
             "id": "jane",
             "sort_key": 1,
-            "title": "Développeur Fullstack React / Next.js",
+            "title": "Développeur fullstack React/Next.js",
             "company": "Jane",
             "dates": "Déc. 2025 – Mai 2026",
             "bullets": [
                 (
-                    "Livraison from scratch de [jane-energie.fr](https://jane-energie.fr) : Next.js, TypeScript, "
-                    "WordPress headless et intégration API."
+                    "Site vitrine [jane-energie.fr](https://jane-energie.fr) from scratch : Next.js, TypeScript, "
+                    "WordPress headless, GraphQL et intégration API."
                 ),
                 (
-                    "Développement produit sur [jane-app.fr](https://jane-app.fr) : React, Hooks, TanStack Query, "
-                    "Axios et consommation d'API REST."
+                    "Application [jane-app.fr](https://jane-app.fr) : React, Fetch, MUI, routing ; "
+                    "back-end NestJS / Node.js, auth, Docker et GitHub Actions."
                 ),
                 (
-                    "Back-end NestJS / Node.js : routes, modèle MongoDB, auth et déploiements Docker / GitHub Actions."
+                    "Modélisation MongoDB, routes API et industrialisation des déploiements."
                 ),
             ],
         },
         {
             "id": "shin",
             "sort_key": 2,
-            "title": "Développeur Frontend Vue.js et WordPress",
+            "title": "Développeur frontend Vue.js et WordPress",
             "company": "Shin Agency",
             "dates": "Août 2023 – Sept. 2024",
             "bullets": [
                 "Refonte UX/UI de [shin-agency.com](https://shin-agency.com) : Vue.js, Tailwind CSS, JavaScript.",
-                "Développement et maintenance WordPress : PHP, thèmes, intégrations front et API.",
+                "Développement et maintenance de thèmes WordPress : PHP, Timber/Twig, jQuery, intégrations front et API.",
                 "Maintenance multi-sites (15+) : WordPress, Docker, Git et optimisations performance.",
             ],
         },
@@ -176,21 +189,29 @@ DEFAULT_PROFILE = {
     ],
     "formations": [
         {
+            "id": "mba-cyber",
             "title": "MBA Expert en Cybersécurité",
             "school": "MBA ESG Paris",
             "dates": "2025 – 2026",
             "sort_key": 1,
             "bullets": [
-                "OWASP, sécurisation API REST, audits techniques — architectures web sécurisées.",
+                (
+                    "Politique de sécurité SI, gestion des risques (EBIOS), pentesting, DevSecOps, RGPD ; "
+                    "préparation CompTIA Security+ et AWS Certified Security."
+                ),
             ],
         },
         {
+            "id": "mastere-digital",
             "title": "Mastère Management de la Transformation Digitale",
             "school": "IIM / ESILV",
             "dates": "2018 – 2024",
             "sort_key": 2,
             "bullets": [
-                "Fullstack, Agile/Scrum, UX/UI, mobile et intégration d'outils d'IA.",
+                (
+                    "Double diplôme IIM / ESILV (RNCP niv. 7) : product management, agile/Scrum, conduite du "
+                    "changement, data, IA appliquée, UX et développement fullstack."
+                ),
             ],
         },
     ],

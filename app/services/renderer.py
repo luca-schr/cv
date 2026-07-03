@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from app.config import PHOTO_PATH
 from app.services.analyzer import JobAnalysis
+from app.services.competences import normalize_competences
 from app.services.llm import LLMAdaptation
 
 
@@ -17,17 +18,6 @@ def _bullet_texts(exp: dict) -> list[str]:
 
 def _item_terms(items: list) -> list[str]:
     return [i if isinstance(i, str) else i["term"] for i in items]
-
-
-def _mailto_contact(contact: str, email: str | None) -> str:
-    if not email:
-        return contact
-    mailto = f"[{email}](mailto:{email})"
-    if mailto in contact or f"mailto:{email}" in contact:
-        return contact
-    if email in contact:
-        return contact.replace(email, mailto)
-    return f"{contact.strip().rstrip(',')}, {mailto}"
 
 
 def _render_contact(header: dict) -> str:
@@ -48,8 +38,7 @@ def _render_contact(header: dict) -> str:
             blocks.append(f'<p class="cv-contact-links">{line2}</p>')
         return "\n".join(blocks)
 
-    legacy = _mailto_contact(str(contact or ""), email)
-    return f'<p class="cv-contact-primary">{legacy}</p>'
+    return f'<p class="cv-contact-primary">{contact or ""}</p>'
 
 
 def _format_langue(langue: str | dict) -> str:
@@ -65,19 +54,12 @@ def render_header(data: dict, title: str) -> str:
     if photo in {"lucas-schrever.jpg", "photo.jpg"}:
         photo = PHOTO_PATH
     return f"""<header class="cv-header">
-
-<div markdown="1">
-
-# {header['name']}
-
-**{title}**
-
+<div class="cv-header-main">
+<p class="cv-name">{header['name']}</p>
+<p class="cv-role">{title}</p>
 {contact}
-
 </div>
-
-![]({photo}){{.photo}}
-
+<img class="photo" src="{photo}" alt="" />
 </header>"""
 
 
@@ -95,14 +77,18 @@ def render_experiences(data: dict, llm: LLMAdaptation | None = None) -> str:
     return "\n".join(lines).rstrip()
 
 
-def render_formations(data: dict) -> str:
+def render_formations(data: dict, llm: LLMAdaptation | None = None) -> str:
     lines = ["## Formations", ""]
     for f in sort_by_date(data["formations"]):
         lines.append(f"### {f['title']} — {f['school']} *{f['dates']}*")
         lines.append("")
-        for bullet in f.get("bullets", []):
+        bullets = f.get("bullets", [])
+        fid = f.get("id", f["school"])
+        if llm and llm.formation_bullets and fid in llm.formation_bullets:
+            bullets = llm.formation_bullets[fid]
+        for bullet in bullets:
             lines.append(f"- {bullet}")
-        if f.get("description") and not f.get("bullets"):
+        if f.get("description") and not bullets:
             lines.append(f"- {f['description']}")
         lines.append("")
     return "\n".join(lines).rstrip()
@@ -110,20 +96,15 @@ def render_formations(data: dict) -> str:
 
 def render_profil_section(data: dict, llm_profil: str | None = None) -> str:
     profil_block = data.get("profil", {})
-    text = (llm_profil or profil_block.get("text", "")).strip()
-    lines = [text] if text else []
-    services = profil_block.get("services") or []
-    if services:
-        if lines:
-            lines.append("")
-        lines.append("**Prestations :**")
-        lines.extend(f"- {item}" for item in services)
-    return "\n".join(lines).strip()
+    return (llm_profil or profil_block.get("text", "")).strip()
 
 
-def render_competences(competences: list[dict]) -> str:
+def render_competences(competences: list[dict], *, english: bool = False) -> str:
+    ordered = normalize_competences(competences, english=english)
+    if not ordered:
+        return ""
     lines = ["## Compétences techniques", ""]
-    for cat in competences:
+    for cat in ordered:
         label = cat.get("label", "")
         terms = _item_terms(cat.get("items", []))
         if not label or not terms:
@@ -132,13 +113,18 @@ def render_competences(competences: list[dict]) -> str:
     return "\n".join(lines).rstrip()
 
 
-def render_certifications(data: dict) -> str:
-    return "\n".join(["## Certifications", "", data["certifications"], ""])
+def render_certifications(data: dict, llm: LLMAdaptation | None = None) -> str:
+    text = data["certifications"]
+    if llm and llm.certifications:
+        text = llm.certifications
+    return "\n".join(["## Certifications", "", text, ""])
 
 
-def render_langues(data: dict) -> str:
-    lines = ["## Langues", ""]
-    lines += [f"- {_format_langue(lang)}" for lang in data["langues"]]
+def render_langues(data: dict, *, english: bool = False, llm: LLMAdaptation | None = None) -> str:
+    title = "## Languages" if english else "## Langues"
+    lines = [title, ""]
+    langues = llm.langues if llm and llm.langues else data["langues"]
+    lines += [f"- {_format_langue(lang)}" for lang in langues]
     return "\n".join(lines)
 
 
@@ -158,9 +144,9 @@ def build_markdown(
         profil = render_profil_section(data)
 
     if llm_active and llm_active.competences:
-        competences = llm_active.competences
+        competences = normalize_competences(llm_active.competences, english=english)
     else:
-        competences = data.get("competences", [])
+        competences = normalize_competences(data.get("competences", []), english=english)
 
     section_profile = "## Summary" if english else "## Profil"
     section_experiences = "## Professional Experience" if english else "## Expériences Professionnelles"
@@ -169,8 +155,13 @@ def build_markdown(
     section_certs = "## Certifications"
     section_langs = "## Languages" if english else "## Langues"
 
+    skills_block = render_competences(competences, english=english).replace(
+        "## Compétences techniques", section_skills, 1
+    )
+
     return "\n".join(
         [
+            '<div class="cv-page">',
             render_header(data, resolved_title),
             "",
             section_profile,
@@ -181,12 +172,15 @@ def build_markdown(
                 "## Expériences Professionnelles", section_experiences, 1
             ),
             "",
-            render_formations(data).replace("## Formations", section_education, 1),
+            render_formations(data, llm_active).replace("## Formations", section_education, 1),
             "",
-            render_competences(competences).replace("## Compétences techniques", section_skills, 1),
+            skills_block,
             "",
-            render_certifications(data).replace("## Certifications", section_certs, 1),
-            render_langues(data).replace("## Langues", section_langs, 1),
+            render_certifications(data, llm_active).replace("## Certifications", section_certs, 1),
+            render_langues(data, english=english, llm=llm_active).replace(
+                "## Langues", section_langs, 1
+            ),
+            "</div>",
             "",
         ]
     )

@@ -6,9 +6,12 @@ import json
 from dataclasses import dataclass
 
 from app.services.analyzer import analyze_job
-from app.services.llm import LLMAdaptation, adapt_with_llm
+from app.services.llm import LLMAdaptation, adapt_with_llm, compress_cv_for_one_page
+from app.services.pdf import export_pdf_result
 from app.services.renderer import build_markdown
 from app.services.sanitize import sanitize_cv_title
+
+MAX_PAGE_ATTEMPTS = 4
 
 
 @dataclass
@@ -18,6 +21,7 @@ class GenerateResult:
     analysis: object
     llm_applied: bool
     warnings: list[str]
+    page_count: int | None = None
 
 
 def generate_cv(
@@ -37,16 +41,49 @@ def generate_cv(
     else:
         title = default_title
 
-    markdown = build_markdown(cv_data, analysis, llm_for_render, title=title, english=english)
     warnings = list(llm_adaptation.warnings) if llm_adaptation else []
     if english and not llm_for_render:
         warnings.append("Traduction anglaise requiert Ollama (LLM).")
+
+    markdown = ""
+    page_count: int | None = None
+
+    for attempt in range(MAX_PAGE_ATTEMPTS):
+        markdown = build_markdown(
+            cv_data, analysis, llm_for_render, title=title, english=english
+        )
+        pdf_result = export_pdf_result(markdown)
+        page_count = pdf_result.page_count
+
+        if page_count <= 1:
+            break
+
+        if not use_llm or not llm_for_render:
+            warnings.append(
+                "Le CV dépasse 1 page A4 — active Ollama pour compresser le contenu automatiquement."
+            )
+            break
+
+        compressed = compress_cv_for_one_page(
+            cv_data,
+            llm_for_render,
+            english=english,
+            attempt=attempt + 1,
+        )
+        if not compressed:
+            warnings.append("Compression LLM indisponible — PDF peut dépasser 1 page.")
+            break
+
+        llm_for_render = compressed
+        warnings.append(f"Ollama a raccourci le contenu (tentative {attempt + 1}) pour tenir sur 1 page.")
+
     return GenerateResult(
         title=title,
         markdown=markdown,
         analysis=analysis,
         llm_applied=bool(llm_for_render),
         warnings=warnings,
+        page_count=page_count,
     )
 
 

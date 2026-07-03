@@ -13,6 +13,7 @@ import yaml
 
 from app.config import settings
 from app.services.analyzer import JobAnalysis
+from app.services.competences import SKILL_CATEGORIES
 from app.services.sanitize import sanitize_cv_title
 
 LLM_CONFIG_FILE = settings.config_dir / "llm.yaml"
@@ -24,6 +25,9 @@ class LLMAdaptation:
     profil: str | None = None
     competences: list[dict] | None = None
     bullets: dict[str, list[str]] = field(default_factory=dict)
+    formation_bullets: dict[str, list[str]] = field(default_factory=dict)
+    certifications: str | None = None
+    langues: list[str] | None = None
     used_llm: bool = False
     warnings: list[str] = field(default_factory=list)
 
@@ -60,6 +64,17 @@ def _compact_cv(cv_data: dict) -> dict:
             }
             for exp in cv_data.get("experiences", [])
         ],
+        "formations": [
+            {
+                "id": f.get("id", f["school"]),
+                "title": f["title"],
+                "school": f["school"],
+                "bullets": f.get("bullets", []),
+            }
+            for f in cv_data.get("formations", [])
+        ],
+        "certifications": cv_data.get("certifications", ""),
+        "langues": cv_data.get("langues", []),
     }
 
 
@@ -149,9 +164,16 @@ def _job_expectations_hint(job: JobAnalysis) -> list[str]:
     return hints
 
 
+def _skill_categories_hint() -> str:
+    return ", ".join(SKILL_CATEGORIES)
+
+
 def _build_prompt(job: JobAnalysis, cv_data: dict, *, english: bool) -> list[dict]:
     lang = "anglais" if english else "français"
+    cats = _skill_categories_hint()
     system = f"""Tu adaptes un CV développeur fullstack à une offre d'emploi.
+Le PDF final DOIT tenir sur 1 page A4 — sois concis.
+
 Réponds en JSON strict :
 {{
   "title": "...",
@@ -163,26 +185,18 @@ Réponds en JSON strict :
 Consignes :
 - title : intitulé court (≤ 60 car.) aligné sur l'offre. Pas de H/F, CDI, localisation.
 
-- profil : EXACTEMENT 2 ou 3 phrases (280–420 car.), comme une réponse directe à la fiche de poste.
-  Le candidat propose des prestations (voir services dans cv_data) : apps React/Next, API Node, WordPress, CI/CD.
-  Structure obligatoire :
-  • Phrase 1 : alignement sur le rôle et le contexte de l'annonce (secteur, type de produit, missions).
-    Reprends 2–4 termes ou expressions de job_text / job_expectations.
-  • Phrase 2 : relie les besoins concrets de l'offre (missions, compétences attendues, job_tags)
-    aux expériences et technos RÉELLES du candidat dans cv_data.
-  • Phrase 3 (si utile) : atout complémentaire crédible (maintenance, déploiement, autonomie, équipe…)
-    UNIQUEMENT si l'offre le valorise et que le CV le justifie.
-  Règles profil : ne rien inventer hors cv_data ; pas de liste à puces ; ton professionnel et concret ;
-  chaque phrase doit pouvoir se justifier par une mission ou une techno de l'offre ET du CV.
+- profil : 2 ou 3 phrases littéraires et humaines (200–320 car.), ton « ce que je fais ».
+  Pas de liste à puces. Décris ton approche et ta valeur ajoutée, reliée à l'offre.
+  Ex. : « Je conçois et livre… en gardant le fil entre besoin métier, code et mise en production. »
+  Ne rien inventer hors cv_data.
 
-- competences : réorganise et détaille technos_root + technos_extended (sous-compétences OK :
-  ex. React → Hooks, TanStack Query ; Node → Express, NestJS, middleware, auth).
-  Priorise les technos citées dans l'offre. Garde 3–6 catégories, 4–6 items détaillés par catégorie.
-- bullets : reformule les missions par expérience (même nombre qu'à l'origine).
-  Mets en avant ce qui répond à l'offre. Conserve les liens [texte](url).
-  L'ordre des expériences ne change pas.
+- competences : EXACTEMENT ces libellés (dans cet ordre si pertinent) : {cats}.
+  3–5 items courts par catégorie. Priorise les technos de l'offre.
 
-Reste crédible par rapport au parcours fourni. LANGUE : {lang}."""
+- bullets : reformule les missions (même nombre qu'à l'origine), phrases courtes (≤ 120 car.).
+  Conserve les liens [texte](url). Mets en avant ce qui répond à l'offre.
+
+Reste crédible. LANGUE : {lang}."""
     user = {
         "job_title_detected": job.title,
         "job_company": job.company,
@@ -245,18 +259,19 @@ def _parse_competences(raw: object) -> list[dict] | None:
 def _apply_payload(payload: dict, cv_data: dict) -> LLMAdaptation:
     result = LLMAdaptation(used_llm=True)
     exp_ids = {exp["id"] for exp in cv_data.get("experiences", [])}
+    formation_ids = {
+        f.get("id", f["school"]) for f in cv_data.get("formations", [])
+    }
 
     title = sanitize_cv_title(str(payload.get("title", "")).strip())
     if title:
         result.title = title[:90]
-    else:
+    elif "title" in payload:
         result.warnings.append("Titre LLM vide — titre par défaut conservé.")
 
     profil = str(payload.get("profil", "")).strip()
     if profil:
         result.profil = profil[:500]
-    else:
-        result.warnings.append("Profil LLM vide — texte par défaut conservé.")
 
     result.competences = _parse_competences(payload.get("competences"))
 
@@ -267,7 +282,119 @@ def _apply_payload(payload: dict, cv_data: dict) -> LLMAdaptation:
                 continue
             result.bullets[exp_id] = [str(b).strip() for b in rewritten_list if str(b).strip()]
 
+    formation_payload = payload.get("formation_bullets", {})
+    if isinstance(formation_payload, dict):
+        for fid, rewritten_list in formation_payload.items():
+            if fid not in formation_ids or not isinstance(rewritten_list, list):
+                continue
+            result.formation_bullets[fid] = [
+                str(b).strip() for b in rewritten_list if str(b).strip()
+            ]
+
+    certs = str(payload.get("certifications", "")).strip()
+    if certs:
+        result.certifications = certs[:280]
+
+    langues_raw = payload.get("langues")
+    if isinstance(langues_raw, list):
+        result.langues = [str(lang).strip() for lang in langues_raw if str(lang).strip()]
+
     return result
+
+
+def _build_compress_prompt(
+    cv_data: dict,
+    current: LLMAdaptation,
+    *,
+    english: bool,
+    attempt: int,
+) -> list[dict]:
+    lang = "anglais" if english else "français"
+    cats = _skill_categories_hint()
+    system = f"""Tu compresses un CV pour qu'il tienne sur EXACTEMENT 1 page A4 PDF.
+Toutes les sections doivent rester : Profil, Expériences, Formations, Compétences techniques,
+Certifications, Langues. Ne supprime aucune section ni aucune expérience/formation.
+
+Réponds en JSON strict :
+{{
+  "profil": "...",
+  "competences": [{{"label": "...", "items": ["..."]}}],
+  "bullets": {{"id_experience": ["..."]}},
+  "formation_bullets": {{"id_formation": ["..."]}},
+  "certifications": "...",
+  "langues": ["...", "..."]
+}}
+
+Règles de compression (tentative {attempt}) :
+- profil : 1–2 phrases littéraires (≤ 200 car.), humaines, sans puces.
+- bullets : raccourcis (≤ 95 car. chacun), garde le même nombre par expérience, conserve [liens](url).
+- competences : libellés EXACTS : {cats}. Max 4 items courts par catégorie.
+- formation_bullets : 1 puce courte par formation.
+- certifications : une ligne compacte.
+- langues : formulations courtes.
+
+Ne rien inventer. LANGUE : {lang}."""
+    user = {
+        "cv_data": _compact_cv(cv_data),
+        "current_adaptation": {
+            "title": current.title,
+            "profil": current.profil,
+            "competences": current.competences,
+            "bullets": current.bullets,
+            "formation_bullets": current.formation_bullets,
+            "certifications": current.certifications,
+            "langues": current.langues,
+        },
+    }
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": json.dumps(user, ensure_ascii=False)},
+    ]
+
+
+def _merge_adaptation(base: LLMAdaptation, update: LLMAdaptation) -> LLMAdaptation:
+    merged = LLMAdaptation(
+        title=base.title,
+        profil=update.profil or base.profil,
+        competences=update.competences or base.competences,
+        bullets=base.bullets.copy(),
+        formation_bullets=base.formation_bullets.copy(),
+        certifications=update.certifications or base.certifications,
+        langues=update.langues or base.langues,
+        used_llm=True,
+        warnings=list(base.warnings),
+    )
+    if update.bullets:
+        merged.bullets.update(update.bullets)
+    if update.formation_bullets:
+        merged.formation_bullets.update(update.formation_bullets)
+    return merged
+
+
+def compress_cv_for_one_page(
+    cv_data: dict,
+    current: LLMAdaptation,
+    *,
+    english: bool = False,
+    attempt: int = 1,
+) -> LLMAdaptation | None:
+    """Demande à Ollama de raccourcir le contenu sans retirer de section."""
+    config = load_llm_config()
+    if not config.get("enabled", False):
+        return None
+    try:
+        raw = _call_ollama(
+            _build_compress_prompt(cv_data, current, english=english, attempt=attempt),
+            config,
+            temperature=0.25,
+        )
+        compressed = _apply_payload(_parse_json(raw), cv_data)
+        if not compressed.profil and not compressed.bullets and not compressed.competences:
+            return None
+        return _merge_adaptation(current, compressed)
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError) as exc:
+        current.warnings.append(f"Compression LLM échouée ({exc}).")
+        return None
 
 
 def adapt_with_llm(

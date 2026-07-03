@@ -11,6 +11,7 @@ data/
 
 # Exports générés
 *.pdf
+tmp*.css
 
 # OS
 .DS_Store
