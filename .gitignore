@@ -3,16 +3,23 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
-
-# Données locales & secrets
-data/
 .env
-.env.*
 
-# Exports générés
-*.pdf
-tmp*.css
+# Data
+data/
+
+# Node
+client/node_modules/
+client/dist/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Temp
+*.pdf
+*.md.tmp
