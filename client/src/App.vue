@@ -1,177 +1,206 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import {
-  generateCvStream,
-  exportPdfStream,
-  fetchGenerations,
-  fetchGeneration,
-  fetchOllamaStatus,
   pingApi,
-  waitForNewGeneration,
-  withRetry,
+  fetchCategories,
+  fetchProfiles,
+  fetchProfile,
+  fetchDefaultProfile,
+  deleteProfile,
+  analyzeJob,
+  exportPdf,
+  fetchOllamaStatus,
 } from './api/http.js'
-import logoUrl from './assets/logo.png'
+import { loadUiState, saveUiState } from './storage.js'
 
-const GEN_STEPS = [
-  { id: 'profile', label: 'Chargement du profil' },
-  { id: 'analyze', label: 'Analyse de l\'offre (Ollama)' },
-  { id: 'skills', label: 'Compétences de l\'offre' },
-  { id: 'adapt', label: 'Adaptation du CV (Ollama)' },
-  { id: 'markdown', label: 'Composition du markdown' },
-  { id: 'pdf', label: 'Vérification PDF A4' },
-  { id: 'compress', label: 'Compression (Ollama)' },
-  { id: 'save', label: 'Sauvegarde' },
-]
-
-const PDF_STEPS = [
-  { id: 'prepare', label: 'Préparation du document' },
-  { id: 'convert', label: 'Conversion Pandoc + WeasyPrint' },
-  { id: 'layout', label: 'Ajustement mise en page A4' },
-  { id: 'pages', label: 'Contrôle du nombre de pages' },
-  { id: 'done', label: 'Finalisation' },
-]
-
-const jobText = ref('')
-const cvMarkdown = ref('')
-const english = ref(false)
-const temperature = ref(0.45)
-const loading = ref(false)
+const saved = loadUiState()
+const english = ref(saved.english)
+const search = ref('')
+const category = ref('')
+const categories = ref([])
+const profiles = ref([])
+const selectedId = ref(saved.selectedId)
+const jobText = ref(saved.jobText)
+const cvMarkdown = ref(saved.cvMarkdown)
+const exportFilename = ref(saved.exportFilename)
+const loadingList = ref(false)
+const loadingProfile = ref(false)
+const analyzing = ref(false)
 const pdfLoading = ref(false)
-const genLoader = ref(null)
-const pdfLoader = ref(null)
-const ollamaStatus = ref('Ollama : vérification…')
+const ollamaStatus = ref('Ollama : …')
 const ollamaState = ref('checking')
+const ollamaReady = ref(false)
 const toast = ref('')
-const history = ref([])
-const exportMeta = ref({ title: '', company: null, version: 1, filename: 'cv' })
-
 let toastTimer = null
+let searchTimer = null
+let persistReady = false
 
 function showToast(msg) {
   toast.value = msg
   clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => { toast.value = '' }, 2800)
+  toastTimer = setTimeout(() => { toast.value = '' }, 3600)
 }
 
-function initLoader(steps) {
-  return {
-    label: 'Démarrage…',
-    pct: 0,
-    steps: steps.map((s) => ({ ...s, status: 'pending' })),
-  }
+function persist() {
+  if (!persistReady) return
+  saveUiState({
+    jobText: jobText.value,
+    cvMarkdown: cvMarkdown.value,
+    selectedId: selectedId.value,
+    exportFilename: exportFilename.value,
+    english: english.value,
+  })
 }
-
-function applyProgress(loader, event, stepOrder) {
-  if (!loader) return loader
-  const idx = stepOrder.indexOf(event.step)
-  const next = {
-    ...loader,
-    label: event.label,
-    pct: event.pct ?? loader.pct,
-    steps: loader.steps.map((s) => {
-      const sIdx = stepOrder.indexOf(s.id)
-      if (sIdx < 0) return s
-      if (sIdx < idx) return { ...s, status: 'done' }
-      if (s.id === event.step) return { ...s, status: 'active' }
-      return { ...s, status: 'pending' }
-    }),
-  }
-  return next
-}
-
-function finishLoader(loader) {
-  if (!loader) return null
-  return {
-    ...loader,
-    pct: 100,
-    label: 'Terminé',
-    steps: loader.steps.map((s) => ({ ...s, status: 'done' })),
-  }
-}
-
-const genStepOrder = GEN_STEPS.map((s) => s.id)
-const pdfStepOrder = PDF_STEPS.map((s) => s.id)
 
 async function checkOllama() {
   ollamaState.value = 'checking'
   ollamaStatus.value = 'Ollama : vérification…'
   try {
     const data = await fetchOllamaStatus()
+    ollamaReady.value = Boolean(data.server_ok && data.model_ready && data.enabled)
     ollamaStatus.value = data.message
-    ollamaState.value = data.server_ok && data.model_ready ? 'ok' : 'error'
+    ollamaState.value = ollamaReady.value ? 'ok' : 'error'
   } catch (e) {
-    ollamaStatus.value = e.message || 'API indisponible'
+    ollamaReady.value = false
+    ollamaStatus.value = e.message || 'Ollama indisponible'
     ollamaState.value = 'error'
   }
 }
 
-async function loadHistory() {
+async function loadCategories() {
+  const data = await fetchCategories()
+  categories.value = data.items || []
+}
+
+async function loadProfiles() {
+  loadingList.value = true
   try {
-    history.value = await fetchGenerations()
-  } catch {
-    history.value = []
+    const data = await fetchProfiles({
+      q: search.value.trim(),
+      category: category.value,
+    })
+    profiles.value = data.items || []
+  } catch (e) {
+    profiles.value = []
+    showToast(e.message || 'Chargement profils impossible.')
+  } finally {
+    loadingList.value = false
   }
 }
 
-function setExportMeta(data) {
-  exportMeta.value = {
-    title: data.title,
-    company: data.company ?? null,
-    version: data.version || 1,
-    filename: data.filename || 'cv',
+function scheduleSearch() {
+  loadingList.value = true
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(loadProfiles, 300)
+}
+
+async function openProfile(id, { silent = false } = {}) {
+  if (loadingProfile.value) return
+  loadingProfile.value = true
+  try {
+    const data = await fetchProfile(id, { english: english.value })
+    selectedId.value = data.id
+    cvMarkdown.value = data.markdown || ''
+    exportFilename.value = data.filename || 'cv'
+    if (!silent) showToast(`Profil chargé : ${data.name}`)
+  } catch (e) {
+    showToast(e.message || 'Impossible de charger le profil.')
+  } finally {
+    loadingProfile.value = false
   }
 }
 
-async function onGenerate() {
+async function loadDefault() {
+  if (loadingProfile.value) return
+  loadingProfile.value = true
+  try {
+    const data = await fetchDefaultProfile({ english: english.value })
+    selectedId.value = data.id
+    cvMarkdown.value = data.markdown || ''
+    exportFilename.value = data.filename || 'cv-lucas-schrever-dotnet-react'
+    showToast(`Profil défaut : ${data.name}`)
+  } catch (e) {
+    showToast(e.message || 'Pas de profil par défaut.')
+  } finally {
+    loadingProfile.value = false
+  }
+}
+
+async function restoreSession() {
+  if (selectedId.value && cvMarkdown.value.trim()) {
+    const stillThere = profiles.value.some((p) => p.id === selectedId.value)
+    if (!stillThere) {
+      try {
+        await fetchProfile(selectedId.value)
+      } catch {
+        selectedId.value = null
+        cvMarkdown.value = ''
+        exportFilename.value = 'cv'
+        await loadDefault()
+        return
+      }
+    }
+    showToast('Session restaurée')
+    return
+  }
+  if (selectedId.value) {
+    await openProfile(selectedId.value, { silent: true })
+    return
+  }
+  await loadDefault()
+}
+
+async function onDelete(profile) {
+  if (profile.is_default) {
+    showToast('Le profil par défaut ne peut pas être supprimé.')
+    return
+  }
+  const ok = window.confirm(`Supprimer le profil « ${profile.name} » ?`)
+  if (!ok) return
+  try {
+    await deleteProfile(profile.id)
+    if (selectedId.value === profile.id) {
+      selectedId.value = null
+      cvMarkdown.value = ''
+      exportFilename.value = 'cv'
+    }
+    showToast('Profil supprimé.')
+    await loadProfiles()
+  } catch (e) {
+    showToast(e.message || 'Suppression impossible.')
+  }
+}
+
+async function onAnalyze() {
   const text = jobText.value.trim()
   if (text.length < 10) {
     showToast('Colle une offre (min. 10 caractères).')
     return
   }
-  const beforeId = history.value[0]?.id ?? 0
-  const beforeMd = cvMarkdown.value
-  loading.value = true
-  genLoader.value = initLoader(GEN_STEPS)
+  analyzing.value = true
   try {
-    const data = await generateCvStream(
-      {
-        job_text: text,
-        english: english.value,
-        temperature: temperature.value,
-      },
-      (event) => {
-        genLoader.value = applyProgress(genLoader.value, event, genStepOrder)
-      },
-    )
-    genLoader.value = finishLoader(genLoader.value)
-    cvMarkdown.value = data.markdown
-    setExportMeta(data)
-    if (data.warnings?.length) showToast(data.warnings.join(' · '))
-    else showToast(`CV généré — ${data.filename}.pdf`)
-    await loadHistory()
+    const result = await analyzeJob({
+      job_text: text,
+      profile_id: selectedId.value || undefined,
+      english: english.value,
+    })
+    if (!result.profile) {
+      showToast(result.message || 'Adaptation impossible.')
+      return
+    }
+    selectedId.value = result.profile.id
+    cvMarkdown.value = result.profile.markdown || ''
+    exportFilename.value = result.profile.filename || 'cv'
+    const parts = [result.message || 'Profil adapté']
+    if (result.profile.title) parts.push(`titre : ${result.profile.title}`)
+    if (result.company) parts.push(result.company)
+    if (result.reason) parts.push(result.reason)
+    if (result.fallback) parts.push('fallback local')
+    showToast(parts.join(' · '))
   } catch (e) {
-    genLoader.value = {
-      ...genLoader.value,
-      label: 'Finalisation côté serveur…',
-      pct: 90,
-    }
-    try {
-      const data = await waitForNewGeneration(beforeId)
-      if (data && data.markdown !== beforeMd) {
-        genLoader.value = finishLoader(genLoader.value)
-        cvMarkdown.value = data.markdown
-        setExportMeta(data)
-        await loadHistory()
-        showToast(`CV récupéré (génération #${data.id}).`)
-      } else {
-        showToast(e.message || 'Erreur de génération.')
-      }
-    } catch {
-      showToast(e.message || 'Erreur de génération.')
-    }
+    showToast(e.message || 'Adaptation impossible.')
   } finally {
-    loading.value = false
-    setTimeout(() => { genLoader.value = null }, 1200)
+    analyzing.value = false
   }
 }
 
@@ -181,62 +210,53 @@ async function onExportPdf() {
     return
   }
   pdfLoading.value = true
-  pdfLoader.value = initLoader(PDF_STEPS)
   try {
-    const { blob, filename } = await exportPdfStream(
-      {
-        markdown: cvMarkdown.value,
-        title: exportMeta.value.title,
-        company: exportMeta.value.company,
-        version: exportMeta.value.version,
-        filename: exportMeta.value.filename,
-      },
-      (event) => {
-        pdfLoader.value = applyProgress(pdfLoader.value, event, pdfStepOrder)
-      },
-    )
-    pdfLoader.value = finishLoader(pdfLoader.value)
-    triggerDownload(blob, filename)
+    const { blob, filename } = await exportPdf({
+      markdown: cvMarkdown.value,
+      filename: exportFilename.value,
+    })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(a.href)
     showToast(`PDF téléchargé — ${filename}`)
   } catch (e) {
     showToast(e.message || 'PDF indisponible.')
   } finally {
     pdfLoading.value = false
-    setTimeout(() => { pdfLoader.value = null }, 1200)
   }
 }
 
-async function openGeneration(id) {
-  try {
-    const data = await fetchGeneration(id)
-    cvMarkdown.value = data.markdown
-    setExportMeta(data)
-    showToast('Génération chargée.')
-  } catch {
-    showToast('Impossible de charger.')
+watch(english, async (val, oldVal) => {
+  if (val === oldVal) return
+  persist()
+  if (selectedId.value) {
+    await openProfile(selectedId.value)
   }
-}
+})
 
-function triggerDownload(blob, filename) {
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(a.href)
-}
+watch(category, () => {
+  loadingList.value = true
+  loadProfiles()
+})
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleString('fr-FR')
-}
+watch([jobText, cvMarkdown, selectedId, exportFilename], () => {
+  persist()
+})
 
 onMounted(async () => {
   try {
-    await withRetry(pingApi, { attempts: 8, delayMs: 1500 })
-    await withRetry(checkOllama, { attempts: 3, delayMs: 1000 })
-    await withRetry(loadHistory, { attempts: 3, delayMs: 1000 })
-  } catch {
-    ollamaStatus.value = 'Backend indisponible — ferme cv.db et relance uvicorn'
-    ollamaState.value = 'error'
+    await pingApi()
+    await checkOllama()
+    await loadCategories()
+    await loadProfiles()
+    await restoreSession()
+  } catch (e) {
+    showToast(e.message || 'Backend indisponible.')
+  } finally {
+    persistReady = true
+    persist()
   }
 })
 </script>
@@ -245,22 +265,95 @@ onMounted(async () => {
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">
-        <img :src="logoUrl" alt="" class="brand-logo" width="32" height="32" />
         <div>
           <h1>CV Generator</h1>
-          <p class="muted">Offre → CV adapté → PDF</p>
+          <p class="muted">Profils statiques → offre → adaptation → PDF</p>
         </div>
       </div>
-      <button
-        type="button"
-        class="ollama-pill"
-        :class="`ollama-pill--${ollamaState}`"
-        title="Cliquer pour revérifier"
-        @click="checkOllama"
-      >
-        {{ ollamaStatus }}
-      </button>
+      <div class="topbar-actions">
+        <label class="checkbox" :class="{ disabled: loadingProfile }">
+          <input v-model="english" type="checkbox" :disabled="loadingProfile || analyzing" />
+          En anglais
+        </label>
+        <button
+          type="button"
+          class="btn-secondary"
+          :disabled="loadingProfile"
+          @click="loadDefault"
+        >
+          Profil défaut
+        </button>
+        <button
+          type="button"
+          class="ollama-pill"
+          :class="`ollama-pill--${ollamaState}`"
+          title="Cliquer pour revérifier"
+          @click="checkOllama"
+        >
+          {{ ollamaStatus }}
+        </button>
+      </div>
     </header>
+
+    <section class="panel panel-profiles">
+      <div class="filters">
+        <input
+          v-model="search"
+          class="search-input"
+          type="search"
+          placeholder="Rechercher un profil…"
+          :disabled="loadingProfile"
+          @input="scheduleSearch"
+        />
+        <select
+          v-model="category"
+          class="category-select"
+          :disabled="loadingProfile"
+        >
+          <option value="">Toutes les catégories</option>
+          <option v-for="c in categories" :key="c.id" :value="c.name">
+            {{ c.label_fr }}
+          </option>
+        </select>
+      </div>
+
+      <div v-if="loadingList" class="inline-loader">
+        <span class="spinner" />
+        <span>Recherche…</span>
+      </div>
+
+      <ul v-if="profiles.length" class="profile-list" :class="{ dimmed: loadingList }">
+        <li
+          v-for="p in profiles"
+          :key="p.id"
+          :class="{ active: selectedId === p.id, default: p.is_default }"
+        >
+          <button
+            type="button"
+            class="profile-open"
+            :disabled="loadingProfile"
+            @click="openProfile(p.id)"
+          >
+            <span class="profile-name">
+              {{ p.name }}
+              <span v-if="p.is_default" class="badge">défaut</span>
+            </span>
+            <span class="profile-meta">{{ p.category?.label_fr }} · {{ p.title }}</span>
+          </button>
+          <button
+            type="button"
+            class="history-delete"
+            title="Supprimer"
+            :disabled="p.is_default || loadingProfile"
+            @click="onDelete(p)"
+          >
+            ×
+          </button>
+        </li>
+      </ul>
+      <p v-else-if="loadingList" class="muted">Chargement…</p>
+      <p v-else class="muted">Aucun profil.</p>
+    </section>
 
     <div class="workspace">
       <section class="panel col-input">
@@ -268,111 +361,57 @@ onMounted(async () => {
         <textarea
           v-model="jobText"
           class="editor-field"
-          rows="16"
-          placeholder="Intitulé, employeur, missions, stack…"
-          :disabled="loading"
+          rows="14"
+          placeholder="Colle l’offre : intitulé, missions, stack…"
+          :disabled="analyzing"
         />
-
-        <div class="controls">
-          <label class="checkbox">
-            <input v-model="english" type="checkbox" :disabled="loading" />
-            English
-          </label>
-          <label class="temp">
-            Température {{ temperature.toFixed(2) }}
-            <input
-              v-model.number="temperature"
-              type="range"
-              min="0.2"
-              max="0.8"
-              step="0.05"
-              :disabled="loading"
-            />
-          </label>
+        <div v-if="analyzing" class="inline-loader">
+          <span class="spinner" />
+          <span>{{ ollamaReady ? 'Adaptation Ollama…' : 'Adaptation locale…' }}</span>
         </div>
-
-        <div v-if="genLoader" class="task-loader">
-          <div class="task-loader-head">
-            <span class="task-loader-title">Génération</span>
-            <span class="task-loader-pct">{{ genLoader.pct ?? 0 }}%</span>
-          </div>
-          <div class="task-loader-bar"><span :style="{ width: `${genLoader.pct ?? 0}%` }" /></div>
-          <p class="task-loader-label">{{ genLoader.label }}</p>
-          <ul class="task-loader-steps">
-            <li
-              v-for="step in genLoader.steps"
-              :key="step.id"
-              :class="`step--${step.status}`"
-            >
-              {{ step.label }}
-            </li>
-          </ul>
-        </div>
-
-        <button class="btn-action" type="button" :disabled="loading" @click="onGenerate">
-          {{ loading ? 'Génération en cours…' : 'Générer CV' }}
+        <button
+          class="btn-action"
+          type="button"
+          :disabled="analyzing"
+          @click="onAnalyze"
+        >
+          {{
+            analyzing
+              ? (ollamaReady ? 'Adaptation Ollama…' : 'Adaptation…')
+              : 'Adapter le profil à l’offre'
+          }}
         </button>
       </section>
 
       <section class="panel col-preview">
-        <h2>CV généré</h2>
-        <textarea
-          v-model="cvMarkdown"
-          class="editor-field"
-          spellcheck="false"
-          placeholder="Markdown du CV…"
-        />
-        <div class="controls controls--spacer" aria-hidden="true" />
-        <p v-if="exportMeta.filename && cvMarkdown.trim()" class="export-name muted">
-          Fichier : <strong>{{ exportMeta.filename }}.pdf</strong>
-        </p>
-
-        <div v-if="pdfLoader" class="task-loader">
-          <div class="task-loader-head">
-            <span class="task-loader-title">Export PDF</span>
-            <span class="task-loader-pct">{{ pdfLoader.pct ?? 0 }}%</span>
+        <h2>CV</h2>
+        <div class="cv-wrap" :class="{ loading: loadingProfile }">
+          <div v-if="loadingProfile" class="cv-overlay">
+            <span class="spinner spinner--dark" />
+            <span>Chargement du profil…</span>
           </div>
-          <div class="task-loader-bar"><span :style="{ width: `${pdfLoader.pct ?? 0}%` }" /></div>
-          <p class="task-loader-label">{{ pdfLoader.label }}</p>
-          <ul class="task-loader-steps">
-            <li
-              v-for="step in pdfLoader.steps"
-              :key="step.id"
-              :class="`step--${step.status}`"
-            >
-              {{ step.label }}
-            </li>
-          </ul>
+          <textarea
+            v-model="cvMarkdown"
+            class="editor-field"
+            spellcheck="false"
+            placeholder="Markdown du CV…"
+            :disabled="loadingProfile"
+          />
         </div>
-
+        <p v-if="exportFilename && cvMarkdown.trim()" class="export-name muted">
+          Fichier : <strong>{{ exportFilename }}.pdf</strong>
+        </p>
         <button
           class="btn-action"
           type="button"
-          :disabled="pdfLoading || !cvMarkdown.trim()"
+          :disabled="pdfLoading || loadingProfile || !cvMarkdown.trim()"
           @click="onExportPdf"
         >
-          {{ pdfLoading ? 'Export en cours…' : 'Télécharger PDF' }}
+          {{ pdfLoading ? 'Export…' : 'Télécharger PDF' }}
         </button>
       </section>
     </div>
 
-    <section class="panel panel-history">
-      <h2>Historique</h2>
-      <ul v-if="history.length" class="history">
-        <li v-for="g in history" :key="g.id">
-          <button type="button" class="history-open" @click="openGeneration(g.id)">
-            {{ g.title }}
-            <span v-if="g.company" class="company">— {{ g.company }}</span>
-            <span v-if="g.version > 1" class="version">v{{ g.version }}</span>
-          </button>
-          <span class="date">{{ formatDate(g.created_at) }} · {{ g.filename }}.pdf</span>
-        </li>
-      </ul>
-      <p v-else class="muted">Aucune génération.</p>
-    </section>
-
     <div v-if="toast" class="toast">{{ toast }}</div>
   </div>
 </template>
-
-<style src="./assets/app.css"></style>

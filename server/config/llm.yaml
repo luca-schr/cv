@@ -2,5 +2,4 @@ enabled: true
 provider: ollama
 model: llama3.2
 base_url: http://localhost:11434
-temperature: 0.45
-timeout_seconds: 120
+timeout_seconds: 90
