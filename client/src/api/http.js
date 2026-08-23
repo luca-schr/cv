@@ -15,7 +15,7 @@ async function request(path, { method = 'GET', body, timeoutMs = 15000 } = {}) {
     if (err.name === 'AbortError') {
       throw new Error('Délai dépassé — Ollama trop lent ou serveur indisponible.')
     }
-    throw new Error('API indisponible — vérifie que le serveur Express tourne (port 8000).')
+    throw new Error('API indisponible — vérifie que le serveur FastAPI tourne (port 8000).')
   } finally {
     clearTimeout(timer)
   }

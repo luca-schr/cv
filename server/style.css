@@ -1,4 +1,5 @@
 ﻿/* CV PDF — A4 une page · style sobre vert / bleu-vert · police compacte */
+/* Rendu : Playwright/Chromium (variables --cv-scale / gap / line-height) */
 
 @page {
   size: A4;

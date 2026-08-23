@@ -27,6 +27,8 @@ const loadingList = ref(false)
 const loadingProfile = ref(false)
 const analyzing = ref(false)
 const pdfLoading = ref(false)
+const adaptInfo = ref(null)
+const exportNote = ref('')
 const ollamaStatus = ref('Ollama : …')
 const ollamaState = ref('checking')
 const ollamaReady = ref(false)
@@ -39,6 +41,13 @@ function showToast(msg) {
   toast.value = msg
   clearTimeout(toastTimer)
   toastTimer = setTimeout(() => { toast.value = '' }, 3600)
+}
+
+function normalizeFilename() {
+  const name = (exportFilename.value || '')
+    .replace(/\.pdf$/i, '')
+    .trim()
+  exportFilename.value = name || 'cv'
 }
 
 function persist() {
@@ -178,6 +187,8 @@ async function onAnalyze() {
     return
   }
   analyzing.value = true
+  adaptInfo.value = null
+  exportNote.value = ''
   try {
     const result = await analyzeJob({
       job_text: text,
@@ -185,19 +196,36 @@ async function onAnalyze() {
       english: english.value,
     })
     if (!result.profile) {
+      adaptInfo.value = {
+        status: 'error',
+        message: result.message || 'Adaptation impossible.',
+      }
       showToast(result.message || 'Adaptation impossible.')
       return
     }
     selectedId.value = result.profile.id
     cvMarkdown.value = result.profile.markdown || ''
     exportFilename.value = result.profile.filename || 'cv'
-    const parts = [result.message || 'Profil adapté']
-    if (result.profile.title) parts.push(`titre : ${result.profile.title}`)
-    if (result.company) parts.push(result.company)
-    if (result.reason) parts.push(result.reason)
-    if (result.fallback) parts.push('fallback local')
-    showToast(parts.join(' · '))
+    adaptInfo.value = {
+      status: 'ok',
+      message: result.message || 'Profil adapté',
+      reason: result.reason || '',
+      source: result.source || '',
+      fallback: Boolean(result.fallback),
+      company: result.company || result.profile.company || '',
+      matchedVia: result.matched_via || '',
+      profileName: result.profile.name || '',
+      title: result.profile.title || '',
+      filename: result.profile.filename || '',
+      addedSkills: result.added_skills || [],
+      missingSkills: result.missing_skills || [],
+    }
+    showToast(result.message || 'Profil adapté')
   } catch (e) {
+    adaptInfo.value = {
+      status: 'error',
+      message: e.message || 'Adaptation impossible.',
+    }
     showToast(e.message || 'Adaptation impossible.')
   } finally {
     analyzing.value = false
@@ -211,6 +239,7 @@ async function onExportPdf() {
   }
   pdfLoading.value = true
   try {
+    normalizeFilename()
     const { blob, filename } = await exportPdf({
       markdown: cvMarkdown.value,
       filename: exportFilename.value,
@@ -221,6 +250,7 @@ async function onExportPdf() {
     a.click()
     URL.revokeObjectURL(a.href)
     showToast(`PDF téléchargé — ${filename}`)
+    exportNote.value = filename
   } catch (e) {
     showToast(e.message || 'PDF indisponible.')
   } finally {
@@ -357,34 +387,33 @@ onMounted(async () => {
 
     <div class="workspace">
       <section class="panel col-input">
-        <h2>Fiche de poste</h2>
+        <div class="panel-head">
+          <h2>Fiche de poste</h2>
+        </div>
         <textarea
           v-model="jobText"
           class="editor-field"
-          rows="14"
           placeholder="Colle l’offre : intitulé, missions, stack…"
           :disabled="analyzing"
         />
-        <div v-if="analyzing" class="inline-loader">
-          <span class="spinner" />
-          <span>{{ ollamaReady ? 'Adaptation Ollama…' : 'Adaptation locale…' }}</span>
-        </div>
-        <button
-          class="btn-action"
-          type="button"
-          :disabled="analyzing"
-          @click="onAnalyze"
-        >
-          {{
-            analyzing
-              ? (ollamaReady ? 'Adaptation Ollama…' : 'Adaptation…')
-              : 'Adapter le profil à l’offre'
-          }}
-        </button>
       </section>
 
       <section class="panel col-preview">
-        <h2>CV</h2>
+        <div class="panel-head">
+          <h2>CV</h2>
+          <label class="filename-edit">
+            <input
+              v-model="exportFilename"
+              class="filename-input"
+              type="text"
+              spellcheck="false"
+              aria-label="Nom du fichier PDF"
+              :disabled="loadingProfile || pdfLoading"
+              @blur="normalizeFilename"
+            />
+            <span class="filename-ext">.pdf</span>
+          </label>
+        </div>
         <div class="cv-wrap" :class="{ loading: loadingProfile }">
           <div v-if="loadingProfile" class="cv-overlay">
             <span class="spinner spinner--dark" />
@@ -398,19 +427,105 @@ onMounted(async () => {
             :disabled="loadingProfile"
           />
         </div>
-        <p v-if="exportFilename && cvMarkdown.trim()" class="export-name muted">
-          Fichier : <strong>{{ exportFilename }}.pdf</strong>
-        </p>
+      </section>
+    </div>
+
+    <section class="panel panel-actions">
+      <div class="panel-head">
+        <h2>Adaptation</h2>
+      </div>
+      <div class="actions-row">
         <button
-          class="btn-action"
+          class="btn-action btn-action--adapt"
+          type="button"
+          :disabled="analyzing"
+          @click="onAnalyze"
+        >
+          {{
+            analyzing
+              ? (ollamaReady ? 'Adaptation Ollama…' : 'Adaptation…')
+              : 'Adapter le profil à l’offre'
+          }}
+        </button>
+        <button
+          class="btn-action btn-action--export"
           type="button"
           :disabled="pdfLoading || loadingProfile || !cvMarkdown.trim()"
           @click="onExportPdf"
         >
           {{ pdfLoading ? 'Export…' : 'Télécharger PDF' }}
         </button>
-      </section>
-    </div>
+      </div>
+      <div v-if="analyzing || pdfLoading" class="inline-loader">
+        <span class="spinner" />
+        <span>
+          {{
+            analyzing
+              ? (ollamaReady ? 'Adaptation Ollama…' : 'Adaptation locale…')
+              : 'Export PDF…'
+          }}
+        </span>
+      </div>
+      <dl v-if="adaptInfo && !analyzing" class="adapt-meta" :class="{ error: adaptInfo.status === 'error' }">
+        <div v-if="adaptInfo.message">
+          <dt>Résultat</dt>
+          <dd>{{ adaptInfo.message }}</dd>
+        </div>
+        <div v-if="adaptInfo.profileName">
+          <dt>Profil</dt>
+          <dd>{{ adaptInfo.profileName }}</dd>
+        </div>
+        <div v-if="adaptInfo.title">
+          <dt>Titre</dt>
+          <dd>{{ adaptInfo.title }}</dd>
+        </div>
+        <div v-if="adaptInfo.company">
+          <dt>Entreprise</dt>
+          <dd>{{ adaptInfo.company }}</dd>
+        </div>
+        <div v-if="adaptInfo.source">
+          <dt>Source</dt>
+          <dd>
+            {{ adaptInfo.source }}
+            <span v-if="adaptInfo.fallback" class="badge-warn">fallback</span>
+          </dd>
+        </div>
+        <div v-if="adaptInfo.matchedVia">
+          <dt>Matching</dt>
+          <dd>
+            {{
+              adaptInfo.matchedVia === 'ollama'
+                ? 'matching Ollama'
+                : adaptInfo.matchedVia === 'closest'
+                  ? 'profil le plus proche (mots-clés)'
+                  : 'profil sélectionné'
+            }}
+          </dd>
+        </div>
+        <div v-if="adaptInfo.reason">
+          <dt>Détail</dt>
+          <dd>{{ adaptInfo.reason }}</dd>
+        </div>
+        <div v-if="adaptInfo.addedSkills?.length">
+          <dt>Compétences mises en avant</dt>
+          <dd>{{ adaptInfo.addedSkills.join(', ') }}</dd>
+        </div>
+        <div v-if="adaptInfo.missingSkills?.length">
+          <dt>Dans l’offre, hors profil</dt>
+          <dd>{{ adaptInfo.missingSkills.join(', ') }}</dd>
+        </div>
+        <div v-if="adaptInfo.filename">
+          <dt>Fichier</dt>
+          <dd>{{ adaptInfo.filename }}.pdf</dd>
+        </div>
+      </dl>
+      <p v-else-if="!analyzing && !pdfLoading && !adaptInfo" class="muted adapt-placeholder">
+        Lance une adaptation pour voir le matching, le titre, l’entreprise et la source ici.
+      </p>
+      <p v-if="exportNote && !pdfLoading" class="muted export-note">
+        Dernier PDF : <strong>{{ exportNote }}</strong>
+      </p>
+    </section>
 
     <div v-if="toast" class="toast">{{ toast }}</div>
   </div>

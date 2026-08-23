@@ -9,11 +9,12 @@ data/
 .env
 *.db
 
-# Python leftovers
+# Python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
+server/.venv/
 
 # OS / IDE
 .DS_Store
