@@ -51,8 +51,15 @@ export async function fetchProfiles({ q = '', category = '' } = {}) {
   return res.json()
 }
 
+function profileQs(english) {
+  const qs = new URLSearchParams()
+  if (english) qs.set('english', 'true')
+  const s = qs.toString()
+  return s ? `?${s}` : ''
+}
+
 export async function fetchProfile(id, { english = false } = {}) {
-  const res = await request(`/profiles/${id}`)
+  const res = await request(`/profiles/${id}${profileQs(english)}`)
   if (!res.ok) throw new Error(await readError(res))
   const data = await res.json()
   if (english && data.markdown_en) {
@@ -67,7 +74,7 @@ export async function fetchProfile(id, { english = false } = {}) {
 }
 
 export async function fetchDefaultProfile({ english = false } = {}) {
-  const res = await request('/profiles/default')
+  const res = await request(`/profiles/default${profileQs(english)}`)
   if (!res.ok) throw new Error(await readError(res))
   const data = await res.json()
   if (english && data.markdown_en) {

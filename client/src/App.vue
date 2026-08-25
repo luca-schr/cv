@@ -47,7 +47,7 @@ function normalizeFilename() {
   const name = (exportFilename.value || '')
     .replace(/\.pdf$/i, '')
     .trim()
-  exportFilename.value = name || 'cv'
+  exportFilename.value = name || 'lucas-schrever-cv-defaut-fr'
 }
 
 function persist() {
@@ -110,7 +110,7 @@ async function openProfile(id, { silent = false } = {}) {
     const data = await fetchProfile(id, { english: english.value })
     selectedId.value = data.id
     cvMarkdown.value = data.markdown || ''
-    exportFilename.value = data.filename || 'cv'
+    exportFilename.value = data.filename || 'lucas-schrever-cv-defaut-fr'
     if (!silent) showToast(`Profil chargé : ${data.name}`)
   } catch (e) {
     showToast(e.message || 'Impossible de charger le profil.')
@@ -126,7 +126,7 @@ async function loadDefault() {
     const data = await fetchDefaultProfile({ english: english.value })
     selectedId.value = data.id
     cvMarkdown.value = data.markdown || ''
-    exportFilename.value = data.filename || 'cv-lucas-schrever-dotnet-react'
+    exportFilename.value = data.filename || 'lucas-schrever-cv-defaut-fr'
     showToast(`Profil défaut : ${data.name}`)
   } catch (e) {
     showToast(e.message || 'Pas de profil par défaut.')
@@ -140,11 +140,11 @@ async function restoreSession() {
     const stillThere = profiles.value.some((p) => p.id === selectedId.value)
     if (!stillThere) {
       try {
-        await fetchProfile(selectedId.value)
+        await fetchProfile(selectedId.value, { english: english.value })
       } catch {
         selectedId.value = null
         cvMarkdown.value = ''
-        exportFilename.value = 'cv'
+        exportFilename.value = 'lucas-schrever-cv-defaut-fr'
         await loadDefault()
         return
       }
@@ -171,7 +171,7 @@ async function onDelete(profile) {
     if (selectedId.value === profile.id) {
       selectedId.value = null
       cvMarkdown.value = ''
-      exportFilename.value = 'cv'
+      exportFilename.value = 'lucas-schrever-cv-defaut-fr'
     }
     showToast('Profil supprimé.')
     await loadProfiles()
@@ -205,7 +205,7 @@ async function onAnalyze() {
     }
     selectedId.value = result.profile.id
     cvMarkdown.value = result.profile.markdown || ''
-    exportFilename.value = result.profile.filename || 'cv'
+    exportFilename.value = result.profile.filename || 'lucas-schrever-cv-defaut-fr'
     adaptInfo.value = {
       status: 'ok',
       message: result.message || 'Profil adapté',

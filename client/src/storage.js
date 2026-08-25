@@ -4,7 +4,7 @@ const DEFAULTS = {
   jobText: '',
   cvMarkdown: '',
   selectedId: null,
-  exportFilename: 'cv',
+  exportFilename: 'lucas-schrever-cv-defaut-fr',
   english: false,
 }
 
@@ -23,7 +23,7 @@ export function loadUiState() {
       exportFilename:
         typeof parsed.exportFilename === 'string' && parsed.exportFilename.trim()
           ? parsed.exportFilename.trim()
-          : 'cv',
+          : 'lucas-schrever-cv-defaut-fr',
       english: Boolean(parsed.english),
     }
   } catch {
@@ -41,7 +41,7 @@ export function saveUiState(partial) {
         jobText: String(next.jobText || ''),
         cvMarkdown: String(next.cvMarkdown || ''),
         selectedId: next.selectedId == null ? null : Number(next.selectedId),
-        exportFilename: String(next.exportFilename || 'cv'),
+        exportFilename: String(next.exportFilename || 'lucas-schrever-cv-defaut-fr'),
         english: Boolean(next.english),
       }),
     )
