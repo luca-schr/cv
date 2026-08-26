@@ -197,11 +197,20 @@ def extract_job_title(job_text: str | None) -> str | None:
     return None
 
 
-def build_job_export_filename(profile_name: str | None, company: str | None) -> str:
-    """Nom de fichier : {titre}-{entreprise}."""
-    base = slug_filename(profile_name, max_len=48) or "cv"
-    org = slug_filename(company, max_len=40)
-    return f"{base}-{org}" if org else base
+PERSON_SLUG = "lucas-schrever"
+
+
+def build_job_export_filename(
+    job_title: str | None,
+    company: str | None,
+    *,
+    english: bool = False,
+) -> str:
+    """lucas-schrever-{poste}-{entreprise|defaut}-{fr|en}."""
+    poste = slug_filename(job_title, max_len=48) or "cv"
+    org = slug_filename(company, max_len=40) or ("default" if english else "defaut")
+    lang = "en" if english else "fr"
+    return f"{PERSON_SLUG}-{poste}-{org}-{lang}"
 
 
 def _extract_about_company(text: str) -> str | None:

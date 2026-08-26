@@ -131,7 +131,7 @@ def _shrink(layout: _Layout) -> _Layout:
 def _find_fitting(
     md_path: Path, pdf_path: Path, *, env: dict[str, str]
 ) -> tuple[_Layout, PdfExportResult]:
-    layout = _Layout(scale=1.0, gap_scale=1.0, line_height=1.28)
+    layout = _Layout(scale=1.0, gap_scale=1.0, line_height=1.34)
     last: PdfExportResult | None = None
     for _ in range(14):
         last = _render(md_path, pdf_path, env=env, layout=layout)

@@ -1,32 +1,32 @@
-﻿/* CV PDF — A4 une page · style sobre vert / bleu-vert · police compacte */
-/* Rendu : Playwright/Chromium (variables --cv-scale / gap / line-height) */
+﻿/* CV PDF — A4 une page · palette bleue · Calibri / Segoe UI */
+/* Rendu : WeasyPrint (variables --cv-scale / gap / line-height) */
 
 @page {
   size: A4;
-  margin: 0.68cm 0.82cm;
+  margin: 0.74cm 0.88cm;
 }
 
 :root {
-  /* Vert principal + variantes bleuâtres */
-  --color-text: #1a2c2a;
-  --color-muted: #5a7380;
-  --color-accent: #2d6b5a;
-  --color-accent-blue: #3a7588;
-  --color-rule: #3d7a6e;
+  --color-text: #12263a;
+  --color-muted: #4a6d88;
+  --color-accent: #0b6cbd;
+  --color-accent-blue: #1e90e8;
+  --color-rule: #7eb8e8;
 
-  /* Titres agrandis proportionnellement · corps compact */
-  --cv-pct-name: 13;
-  --cv-pct-role: 10;
-  --cv-pct-section: 7;
-  --cv-pct-body: 74;
+  --cv-pct-name: 11.5;
+  --cv-pct-role: 14;
+  --cv-pct-section: 10.8;
+  --cv-pct-h3: 7.4;
+  --cv-pct-body: 84;
 
   --cv-scale: 1;
   --cv-gap-scale: 1;
-  --cv-line-height: 1.28;
+  --cv-line-height: 1.34;
 
-  --cv-name-pt: calc(var(--cv-pct-name) * 1.45pt);
+  --cv-name-pt: calc(var(--cv-pct-name) * 1.32pt);
   --cv-role-pt: calc(var(--cv-pct-role) * 1.4pt);
-  --cv-section-pt: calc(var(--cv-pct-section) * 1.35pt);
+  --cv-section-pt: calc(var(--cv-pct-section) * 1.28pt);
+  --cv-h3-pt: calc(var(--cv-pct-h3) * 1.22pt);
   --cv-body-pt: calc(var(--cv-pct-body) * 0.1pt);
 }
 
@@ -35,11 +35,10 @@ html {
 }
 
 body {
-  /* Tahoma : web-safe dense (chasse naturellement plus étroite qu’Arial/Verdana) */
-  font-family: Tahoma, Geneva, "Segoe UI", sans-serif;
+  font-family: Calibri, Candara, "Segoe UI", "Trebuchet MS", Helvetica, sans-serif;
   font-size: calc(var(--cv-body-pt) * var(--cv-scale));
   line-height: var(--cv-line-height);
-  letter-spacing: -0.012em;
+  letter-spacing: 0;
   color: var(--color-text);
   margin: 0;
 }
@@ -49,35 +48,56 @@ body {
 }
 
 header.cv-header {
-  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  column-gap: calc(0.72rem * var(--cv-scale));
   margin: 0 0 calc(0.5rem * var(--cv-gap-scale) * var(--cv-scale));
-  padding: 0 calc(3.7rem * var(--cv-scale)) calc(0.36rem * var(--cv-gap-scale) * var(--cv-scale)) 0;
+  padding: 0 0 calc(0.32rem * var(--cv-gap-scale) * var(--cv-scale)) 0;
   border-bottom: 1.25px solid var(--color-rule);
+}
+
+header.cv-header .cv-header-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+h1,
+header.cv-header .cv-role {
+  font-size: calc(var(--cv-role-pt) * var(--cv-scale));
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.02;
+  color: var(--color-accent);
+}
+
+header.cv-header .cv-role {
+  order: -1;
 }
 
 header.cv-header .cv-name {
   font-size: calc(var(--cv-name-pt) * var(--cv-scale));
-  font-weight: 700;
-  margin: 0 0 calc(0.08rem * var(--cv-scale));
-  line-height: 1.06;
+  font-weight: 800;
+  margin: 0 0 calc(0.1rem * var(--cv-scale));
+  line-height: 1.05;
   color: var(--color-text);
-  letter-spacing: -0.015em;
-}
-
-header.cv-header .cv-role {
-  font-size: calc(var(--cv-role-pt) * var(--cv-scale));
-  font-weight: 700;
-  margin: 0 0 calc(0.14rem * var(--cv-scale));
-  line-height: 1.1;
-  color: var(--color-accent);
+  letter-spacing: 0;
 }
 
 header.cv-header .cv-contact-primary,
 header.cv-header .cv-contact-links {
   margin: 0.03rem 0;
-  font-size: calc(var(--cv-body-pt) * 0.92 * var(--cv-scale));
-  line-height: 1.28;
+  font-size: calc(var(--cv-body-pt) * var(--cv-scale));
+  line-height: var(--cv-line-height);
   color: var(--color-muted);
+}
+
+header.cv-header .cv-contact-links a,
+header.cv-header .cv-contact-primary a {
+  font-size: inherit;
 }
 
 header.cv-header .cv-contact-links a {
@@ -90,42 +110,68 @@ header.cv-header .cv-contact-primary a {
 }
 
 header.cv-header img.photo {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: calc(3.55rem * var(--cv-scale));
-  height: calc(3.55rem * var(--cv-scale));
+  order: -1;
+  float: left;
+  flex-shrink: 0;
+  width: calc(5.45rem * var(--cv-scale));
+  height: calc(5.45rem * var(--cv-scale));
+  margin: 0;
   object-fit: cover;
   object-position: center top;
   border: none;
 }
 
 h2 {
+  display: flex;
+  align-items: stretch;
+  column-gap: 0.35em;
   font-size: calc(var(--cv-section-pt) * var(--cv-scale));
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  line-height: 1.15;
   color: var(--color-accent);
-  margin: calc(0.55rem * var(--cv-gap-scale) * var(--cv-scale)) 0 calc(0.16rem * var(--cv-scale));
-  padding: calc(0.08rem * var(--cv-scale)) 0 calc(0.08rem * var(--cv-scale))
-    calc(0.34rem * var(--cv-scale));
-  border-left: 2.5px solid var(--color-accent-blue);
+  margin: calc(0.7rem * var(--cv-gap-scale) * var(--cv-scale)) 0 calc(0.22rem * var(--cv-scale));
+  padding: 0;
+}
+
+h2::before {
+  content: "";
+  flex: 0 0 2px;
+  width: 2px;
+  align-self: stretch;
+  background: var(--color-accent-blue);
 }
 
 h3,
 p,
 li,
-em,
-i,
 .cv-page > p {
   font-size: calc(var(--cv-body-pt) * var(--cv-scale));
   line-height: var(--cv-line-height);
 }
 
 h3 {
-  font-weight: 700;
-  margin: calc(0.22rem * var(--cv-gap-scale) * var(--cv-scale)) 0 0.03rem;
+  font-size: calc(var(--cv-h3-pt) * var(--cv-scale));
+  font-weight: 800;
+  margin: calc(0.32rem * var(--cv-gap-scale) * var(--cv-scale)) 0 0.06rem;
   color: var(--color-text);
+  overflow: hidden;
+}
+
+h3 em,
+h3 i {
+  float: right;
+  margin: 0 0 0 0.6em;
+  font-size: 0.86em;
+  font-weight: 600;
+  font-style: italic;
+  white-space: nowrap;
+  color: var(--color-muted);
+}
+
+strong {
+  font-weight: 800;
 }
 
 p,
@@ -140,16 +186,16 @@ a {
 }
 
 p {
-  margin: 0.03rem 0 calc(0.09rem * var(--cv-scale));
+  margin: 0.04rem 0 calc(0.12rem * var(--cv-scale));
 }
 
 ul {
-  margin: 0.04rem 0 calc(0.1rem * var(--cv-scale));
-  padding-left: 0.8rem;
+  margin: 0.06rem 0 calc(0.14rem * var(--cv-scale));
+  padding-left: 0.85rem;
 }
 
 li {
-  margin-bottom: calc(0.06rem * var(--cv-gap-scale) * var(--cv-scale));
+  margin-bottom: calc(0.1rem * var(--cv-gap-scale) * var(--cv-scale));
 }
 
 li::marker {
@@ -160,10 +206,6 @@ em,
 i {
   font-style: italic;
   color: var(--color-muted);
-}
-
-strong {
-  font-weight: 700;
 }
 
 pre,

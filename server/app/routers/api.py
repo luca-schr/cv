@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.services.adapt import adapt_profile_to_job, repair_cv_markdown_headings
-from app.services.filename import build_job_export_filename, extract_company, slug_filename
+from app.services.filename import build_job_export_filename, extract_company
 from app.services.match import (
     assess_skill_gap,
     build_match_context,
@@ -51,6 +51,11 @@ def map_profile_summary(row: dict[str, Any]) -> dict[str, Any]:
 
 def map_profile_detail(row: dict[str, Any], english: bool = False) -> dict[str, Any]:
     use_en = bool(english and row.get("markdown_en"))
+    title = (
+        row.get("title_en")
+        if use_en and row.get("title_en")
+        else row.get("title")
+    )
     base = map_profile_summary(row)
     base.update(
         {
@@ -59,15 +64,15 @@ def map_profile_detail(row: dict[str, Any], english: bool = False) -> dict[str, 
                 if use_en and row.get("summary_en")
                 else row.get("summary")
             ),
-            "title": (
-                row.get("title_en")
-                if use_en and row.get("title_en")
-                else row.get("title")
-            ),
+            "title": title,
             "markdown": row.get("markdown_en") if use_en else row.get("markdown"),
             "markdown_en": row.get("markdown_en"),
             "keywords": row.get("keywords"),
-            "filename": slug_filename(row.get("name") or "") or "cv",
+            "filename": build_job_export_filename(
+                title or row.get("name"),
+                None,
+                english=english,
+            ),
         }
     )
     return base
@@ -134,7 +139,7 @@ def list_profiles(
 
 
 @router.get("/profiles/default")
-def profile_default() -> dict[str, Any]:
+def profile_default(english: bool = Query(False)) -> dict[str, Any]:
     with get_db() as conn:
         row = conn.execute(
             """
@@ -145,11 +150,13 @@ def profile_default() -> dict[str, Any]:
         ).fetchone()
     if not row:
         raise HTTPException(404, "Aucun profil par défaut")
-    return map_profile_detail(dict(row))
+    return map_profile_detail(dict(row), english)
 
 
 @router.get("/profiles/{profile_id}")
-def profile_by_id(profile_id: int) -> dict[str, Any]:
+def profile_by_id(
+    profile_id: int, english: bool = Query(False)
+) -> dict[str, Any]:
     with get_db() as conn:
         row = conn.execute(
             """
@@ -161,7 +168,7 @@ def profile_by_id(profile_id: int) -> dict[str, Any]:
         ).fetchone()
     if not row:
         raise HTTPException(404, "Profil introuvable")
-    return map_profile_detail(dict(row))
+    return map_profile_detail(dict(row), english)
 
 
 @router.delete("/profiles/{profile_id}", status_code=204)
@@ -250,7 +257,11 @@ async def analyze(body: AnalyzeBody) -> dict[str, Any]:
             base, job_text, english=body.english, llm_status=llm_status
         )
         company = adapted.get("company") or extract_company(job_text, None)
-        filename = build_job_export_filename(adapted.get("title") or base["name"], company)
+        filename = build_job_export_filename(
+            adapted.get("title") or base.get("title") or base.get("name"),
+            company,
+            english=body.english,
+        )
         profile = {
             **base,
             "title": adapted.get("title") or base.get("title"),
