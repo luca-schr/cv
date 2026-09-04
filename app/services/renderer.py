@@ -55,8 +55,8 @@ def render_header(data: dict, title: str) -> str:
         photo = PHOTO_PATH
     return f"""<header class="cv-header">
 <div class="cv-header-main">
+<h1 class="cv-role">{title}</h1>
 <p class="cv-name">{header['name']}</p>
-<p class="cv-role">{title}</p>
 {contact}
 </div>
 <img class="photo" src="{photo}" alt="" />
@@ -66,7 +66,10 @@ def render_header(data: dict, title: str) -> str:
 def render_experiences(data: dict, llm: LLMAdaptation | None = None) -> str:
     lines = ["## Expériences Professionnelles", ""]
     for exp in sort_by_date(data["experiences"]):
-        lines.append(f"### {exp['title']} — {exp['company']} *{exp['dates']}*")
+        lines.append(
+            f"### {exp['title']} — {exp['company']} "
+            f'<span class="cv-dates">{exp["dates"]}</span>'
+        )
         lines.append("")
         if llm and exp["id"] in llm.bullets:
             bullets = llm.bullets[exp["id"]]
@@ -80,7 +83,10 @@ def render_experiences(data: dict, llm: LLMAdaptation | None = None) -> str:
 def render_formations(data: dict, llm: LLMAdaptation | None = None) -> str:
     lines = ["## Formations", ""]
     for f in sort_by_date(data["formations"]):
-        lines.append(f"### {f['title']} — {f['school']} *{f['dates']}*")
+        lines.append(
+            f"### {f['title']} — {f['school']} "
+            f'<span class="cv-dates">{f["dates"]}</span>'
+        )
         lines.append("")
         bullets = f.get("bullets", [])
         fid = f.get("id", f["school"])

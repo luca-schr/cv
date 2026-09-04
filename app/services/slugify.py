@@ -33,6 +33,35 @@ def slugify(text: str, *, max_len: int = 40) -> str:
     return slug
 
 
+PROFILE_SLUGS = {
+    "fullstack": {"fr": "developpeur-fullstack", "en": "fullstack-developer"},
+}
+
+DEFAULT_COMPANY = {"fr": "defaut", "en": "default"}
+
+
+def profile_file_slug(profile_key: str, *, english: bool = False) -> str:
+    lang = "en" if english else "fr"
+    mapped = PROFILE_SLUGS.get(profile_key or "", {}).get(lang)
+    if mapped:
+        return mapped
+    return slugify(profile_key or "profil", max_len=40) or "profil"
+
+
+def build_export_basename(
+    *,
+    profile_key: str = "fullstack",
+    company: str | None = None,
+    english: bool = False,
+) -> str:
+    """lucas-schrever-[profil]-[entreprise|defaut]-[fr|en]."""
+    lang = "en" if english else "fr"
+    company_slug = slugify(company or "", max_len=24)
+    if not company_slug:
+        company_slug = DEFAULT_COMPANY[lang]
+    return f"lucas-schrever-{profile_file_slug(profile_key, english=english)}-{company_slug}-{lang}"
+
+
 def build_cv_basename(role: str, company: str | None = None, *, role_max: int = 40, company_max: int = 18) -> str:
     """cv-[poste]-[entreprise] — entreprise omise si absente."""
     role_slug = slugify(role, max_len=role_max) or "master"

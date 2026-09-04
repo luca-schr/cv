@@ -43,7 +43,7 @@ def generate_cv(
 
     warnings = list(llm_adaptation.warnings) if llm_adaptation else []
     if english and not llm_for_render:
-        warnings.append("Traduction anglaise requiert Ollama (LLM).")
+        warnings.append("Traduction anglaise requiert le LLM.")
 
     markdown = ""
     page_count: int | None = None
@@ -60,7 +60,7 @@ def generate_cv(
 
         if not use_llm or not llm_for_render:
             warnings.append(
-                "Le CV dépasse 1 page A4 — active Ollama pour compresser le contenu automatiquement."
+                "Le CV dépasse 1 page A4 — active le LLM pour compresser le contenu automatiquement."
             )
             break
 
@@ -75,7 +75,7 @@ def generate_cv(
             break
 
         llm_for_render = compressed
-        warnings.append(f"Ollama a raccourci le contenu (tentative {attempt + 1}) pour tenir sur 1 page.")
+        warnings.append(f"Le LLM a raccourci le contenu (tentative {attempt + 1}) pour tenir sur 1 page.")
 
     return GenerateResult(
         title=title,

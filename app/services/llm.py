@@ -1,4 +1,4 @@
-"""Adaptation CV via Ollama — prompt ouvert, peu de contraintes."""
+"""Adaptation CV via l'API cloud Ollama (GLM-5.3-Flash)."""
 
 from __future__ import annotations
 
@@ -38,8 +38,25 @@ def load_llm_config() -> dict:
     with LLM_CONFIG_FILE.open(encoding="utf-8") as handle:
         config = yaml.safe_load(handle) or {}
     config["provider"] = os.getenv("CV_LLM_PROVIDER", config.get("provider", "ollama"))
-    config["model"] = os.getenv("CV_LLM_MODEL", config.get("model", "llama3.2"))
+    config["model"] = os.getenv("CV_LLM_MODEL", config.get("model", "glm-5.3-flash"))
     return config
+
+
+def _llm_api_key() -> str:
+    return (
+        os.getenv("CV_LLM_API_KEY")
+        or os.getenv("OLLAMA_API_KEY")
+        or settings.ollama_api_key
+        or ""
+    ).strip()
+
+
+def _cloud_model_name(model: str) -> str:
+    """Sur ollama.com, le suffixe :cloud n'est pas nécessaire."""
+    name = (model or "glm-5.3-flash").strip()
+    if name.endswith(":cloud"):
+        return name[: -len(":cloud")]
+    return name
 
 
 def _bullet_texts(exp: dict) -> list[str]:
@@ -86,7 +103,7 @@ class JobMetaExtraction:
 
 
 def extract_job_meta_with_llm(cleaned: str) -> JobMetaExtraction | None:
-    """Extrait intitulé de poste et employeur depuis la fiche (Ollama)."""
+    """Extrait intitulé de poste et employeur depuis la fiche (LLM)."""
     text = (cleaned or "").strip()
     if len(text) < 20:
         return None
@@ -112,7 +129,7 @@ Réponds en JSON strict : {"job_title": "...", "company": "..."}
         {"role": "user", "content": json.dumps({"job_text": text[:10000]}, ensure_ascii=False)},
     ]
     try:
-        raw = _call_ollama(messages, config, temperature=0.15)
+        raw = _call_llm(messages, config, temperature=0.15)
         payload = _parse_json(raw)
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError):
         return JobMetaExtraction(used_llm=False)
@@ -211,24 +228,55 @@ Reste crédible. LANGUE : {lang}."""
     ]
 
 
-def _call_ollama(messages: list[dict], config: dict, *, temperature: float | None = None) -> str:
-    base_url = config.get("base_url", "http://localhost:11434").rstrip("/")
+def _http_error_detail(exc: urllib.error.HTTPError) -> str:
+    try:
+        body = exc.read().decode("utf-8", errors="replace").strip()
+    except Exception:
+        body = ""
+    return (body or exc.reason or str(exc))[:300]
+
+
+def _call_llm(messages: list[dict], config: dict, *, temperature: float | None = None) -> str:
+    api_key = _llm_api_key()
+    if not api_key:
+        raise urllib.error.URLError("Clé API absente (OLLAMA_API_KEY)")
+
+    base_url = config.get("base_url", "https://ollama.com").rstrip("/")
     payload = {
-        "model": config.get("model", "llama3.2"),
+        "model": _cloud_model_name(config.get("model", "glm-5.3-flash")),
         "messages": messages,
         "stream": False,
         "format": "json",
-        "options": {"temperature": float(temperature if temperature is not None else config.get("temperature", 0.6))},
+        "options": {
+            "temperature": float(
+                temperature if temperature is not None else config.get("temperature", 0.5)
+            )
+        },
     }
     request = urllib.request.Request(
         f"{base_url}/api/chat",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=int(config.get("timeout_seconds", 120))) as resp:
-        body = json.loads(resp.read().decode("utf-8"))
-    return body["message"]["content"]
+    try:
+        with urllib.request.urlopen(
+            request, timeout=int(config.get("timeout_seconds", 180))
+        ) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        raise urllib.error.URLError(
+            f"HTTP {exc.code}: {_http_error_detail(exc)}"
+        ) from None
+
+    content = (body.get("message") or {}).get("content") or ""
+    content = str(content).strip()
+    if not content:
+        raise KeyError("Réponse LLM vide")
+    return content
 
 
 def _parse_json(raw: str) -> dict:
@@ -236,7 +284,13 @@ def _parse_json(raw: str) -> dict:
     if raw.startswith("```"):
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
-    return json.loads(raw)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+        if not match:
+            raise
+        return json.loads(match.group(0))
 
 
 def _parse_competences(raw: object) -> list[dict] | None:
@@ -378,12 +432,12 @@ def compress_cv_for_one_page(
     english: bool = False,
     attempt: int = 1,
 ) -> LLMAdaptation | None:
-    """Demande à Ollama de raccourcir le contenu sans retirer de section."""
+    """Demande au LLM de raccourcir le contenu sans retirer de section."""
     config = load_llm_config()
     if not config.get("enabled", False):
         return None
     try:
-        raw = _call_ollama(
+        raw = _call_llm(
             _build_compress_prompt(cv_data, current, english=english, attempt=attempt),
             config,
             temperature=0.25,
@@ -404,7 +458,7 @@ def adapt_with_llm(
     if not force and not config.get("enabled", False):
         return None
     try:
-        raw = _call_ollama(
+        raw = _call_llm(
             _build_prompt(job, cv_data, english=english),
             config,
             temperature=float(config.get("temperature", 0.45)),
@@ -414,10 +468,10 @@ def adapt_with_llm(
         return LLMAdaptation(used_llm=False, warnings=[f"LLM indisponible ({exc})."])
 
 
-def check_ollama_status() -> dict:
+def check_llm_status() -> dict:
     config = load_llm_config()
-    model = config.get("model", "llama3.2")
-    base_url = config.get("base_url", "http://localhost:11434").rstrip("/")
+    model = _cloud_model_name(config.get("model", "glm-5.3-flash"))
+    base_url = config.get("base_url", "https://ollama.com").rstrip("/")
     result = {
         "enabled": bool(config.get("enabled", False)),
         "provider": config.get("provider", "ollama"),
@@ -427,17 +481,29 @@ def check_ollama_status() -> dict:
         "model_ready": False,
         "message": "",
     }
+    if not _llm_api_key():
+        result["message"] = "Clé API absente. Définis OLLAMA_API_KEY dans .env"
+        return result
     try:
-        request = urllib.request.Request(f"{base_url}/api/tags", method="GET")
-        with urllib.request.urlopen(request, timeout=5) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
+        request = urllib.request.Request(
+            f"{base_url}/api/tags",
+            method="GET",
+            headers={"Authorization": f"Bearer {_llm_api_key()}"},
+        )
+        with urllib.request.urlopen(request, timeout=10) as resp:
+            resp.read()
         result["server_ok"] = True
-        installed = {m.get("name", "").split(":")[0] for m in body.get("models", [])}
-        result["model_ready"] = model in installed
-        if result["model_ready"]:
-            result["message"] = f"Ollama OK — modèle {model} disponible"
+        result["model_ready"] = True
+        result["message"] = f"Ollama Cloud OK — {model}"
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            result["message"] = "Clé API Ollama invalide ou refusée."
+        elif exc.code == 404:
+            result["server_ok"] = True
+            result["model_ready"] = True
+            result["message"] = f"Ollama Cloud OK — {model}"
         else:
-            result["message"] = f"Ollama actif mais modèle '{model}' absent. Lance : ollama pull {model}"
-    except (urllib.error.URLError, TimeoutError) as exc:
-        result["message"] = f"Ollama inaccessible ({exc}). Lance l'app Ollama."
+            result["message"] = f"API Ollama HTTP {exc.code}: {_http_error_detail(exc)}"
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError) as exc:
+        result["message"] = f"API Ollama Cloud inaccessible ({exc})."
     return result

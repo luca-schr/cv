@@ -81,6 +81,7 @@ def update_default(body: ProfileUpdate, db: Session = Depends(get_db)):
 def sync_default_from_seed(db: Session) -> Profile:
     """Réinjecte le profil depuis app/seed.py dans la base."""
     profile = get_default_profile(db)
+    profile.name = "Développeur fullstack"
     profile.data = json.dumps(DEFAULT_PROFILE, ensure_ascii=False)
     db.commit()
     db.refresh(profile)
@@ -98,6 +99,22 @@ def get_profile(profile_id: int, db: Session = Depends(get_db)):
     if not profile:
         raise HTTPException(404, "Profil introuvable")
     return _to_read(profile)
+
+
+@router.get("/{profile_id}/markdown", response_model=ProfileMarkdownRead)
+def get_profile_markdown(profile_id: int, db: Session = Depends(get_db)):
+    profile = db.get(Profile, profile_id)
+    if not profile:
+        raise HTTPException(404, "Profil introuvable")
+    data = json.loads(profile.data)
+    title = data["header"]["title_default"]
+    markdown = build_markdown(data)
+    return ProfileMarkdownRead(
+        profile_id=profile.id,
+        title=title,
+        markdown=markdown,
+        is_default=profile.is_default,
+    )
 
 
 @router.post("", response_model=ProfileRead, status_code=201)
@@ -146,7 +163,7 @@ def get_default_profile(db: Session) -> Profile:
     profile = db.query(Profile).filter(Profile.is_default.is_(True)).first()
     if not profile:
         profile = Profile(
-            name="Lucas Schrever",
+            name="Développeur fullstack",
             data=json.dumps(DEFAULT_PROFILE, ensure_ascii=False),
             is_default=True,
         )

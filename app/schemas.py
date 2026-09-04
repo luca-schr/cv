@@ -82,4 +82,4 @@ class GenerationsPurgeRead(BaseModel):
 
 class MarkdownPdfRequest(BaseModel):
     markdown: str = Field(min_length=20)
-    filename: str | None = Field(default=None, max_length=80)
+    filename: str | None = Field(default=None, max_length=120)

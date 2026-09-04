@@ -1,13 +1,13 @@
 from fastapi import APIRouter
 
-from app.services.llm import check_ollama_status, load_llm_config
+from app.services.llm import check_llm_status, load_llm_config
 
 router = APIRouter(prefix="/llm", tags=["llm"])
 
 
 @router.get("/status")
 def llm_status():
-    return check_ollama_status()
+    return check_llm_status()
 
 
 @router.get("/config")

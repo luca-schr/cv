@@ -100,6 +100,7 @@ DEFAULT_COMPETENCES = [
 
 DEFAULT_PROFILE = {
     "version": 3,
+    "key": "fullstack",
     "header": {
         "name": "Lucas Schrever",
         "title_default": "Développeur fullstack",

@@ -9,7 +9,7 @@ router = APIRouter(prefix="/export", tags=["export"])
 
 
 def _safe_filename(raw: str) -> str:
-    name = slugify(raw or "cv", max_len=60)
+    name = slugify(raw or "cv", max_len=100)
     return name or "cv"
 
 

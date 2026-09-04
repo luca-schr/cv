@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     assets_dir: Path = ROOT / "assets"
     style_file: Path = ROOT / "style.css"
     weasyprint_dll: str = r"C:\msys64\mingw64\bin"
+    ollama_api_key: str = ""
 
 
 settings = Settings()

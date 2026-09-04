@@ -1,26 +1,17 @@
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.config import settings
+from app.config import ROOT, settings
 from app.database import SessionLocal, init_db
 from app.routers import export, generations, jobs, llm, profiles
 from app.routers.profiles import sync_default_from_seed
 
-STATIC_DIR = Path(__file__).resolve().parent / "static"
+CLIENT_DIST = ROOT / "client" / "dist"
 
-
-def _load_index_html() -> str:
-    html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
-    css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
-    return html.replace(
-        '<link rel="stylesheet" href="/static/app.css" />',
-        f"<style>\n{css}\n</style>",
-    )
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -54,8 +45,11 @@ app.include_router(jobs.router, prefix="/api")
 app.include_router(generations.router, prefix="/api")
 app.include_router(llm.router, prefix="/api")
 
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.mount("/assets", StaticFiles(directory=str(settings.assets_dir)), name="assets")
+
+_ui_dir = CLIENT_DIST / "ui"
+if _ui_dir.is_dir():
+    app.mount("/ui", StaticFiles(directory=str(_ui_dir)), name="client_ui")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -63,9 +57,17 @@ def favicon():
     return FileResponse(settings.assets_dir / "draw.png", media_type="image/png")
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", include_in_schema=False)
 def index():
-    return HTMLResponse(_load_index_html())
+    index_file = CLIENT_DIST / "index.html"
+    if index_file.is_file():
+        return FileResponse(index_file)
+    return HTMLResponse(
+        "<p>Frontend non compilé. En développement : <code>cd client && npm run dev</code> "
+        "puis ouvre <a href='http://127.0.0.1:5173'>http://127.0.0.1:5173</a>. "
+        "Sinon : <code>npm run build</code> dans <code>client/</code> et relance uvicorn.</p>",
+        status_code=503,
+    )
 
 
 @app.get("/api")

@@ -4,10 +4,23 @@ __pycache__/
 .venv/
 venv/
 
+# Node
+node_modules/
+client/dist/
+
 # Données locales & secrets
 data/
 .env
 .env.*
+
+# Exports générés
+*.pdf
+tmp*.css
+
+# OS
+.DS_Store
+Thumbs.db
+
 
 # Exports générés
 *.pdf
