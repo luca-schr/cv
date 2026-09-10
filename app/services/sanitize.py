@@ -13,9 +13,17 @@ _TITLE_PARASITES = (
 )
 
 
+def replace_long_dashes(text: str) -> str:
+    """Remplace tirets cadratin / demi-cadratin par un tiret simple."""
+    if not text:
+        return text
+    cleaned = text.replace("—", " - ").replace("–", " - ")
+    return re.sub(r"\s{2,}", " ", cleaned).strip()
+
+
 def sanitize_cv_title(title: str) -> str:
     """Retire les suffixes parasites des intitulés d'offre (ex. « - H/F »)."""
-    cleaned = title.strip()
+    cleaned = replace_long_dashes(title.strip())
     if not cleaned:
         return cleaned
     for pattern in _TITLE_PARASITES:

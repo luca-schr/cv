@@ -1,5 +1,6 @@
 const PROFILE_SLUGS = {
   fullstack: { fr: "developpeur-fullstack", en: "fullstack-developer" },
+  "chef-projet": { fr: "chef-de-projet-digital", en: "digital-project-manager" },
 };
 
 const DEFAULT_COMPANY = { fr: "defaut", en: "default" };

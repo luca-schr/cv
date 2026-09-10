@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Profile
 from app.schemas import ProfileCreate, ProfileMarkdownRead, ProfileRead, ProfileUpdate
-from app.seed import DEFAULT_PROFILE
+from app.seed import DEFAULT_PROFILE, SEED_PROFILES
 from app.services.pdf import export_pdf
 from app.services.renderer import build_markdown
 from app.services.slugify import build_cv_basename
@@ -79,13 +79,44 @@ def update_default(body: ProfileUpdate, db: Session = Depends(get_db)):
 
 
 def sync_default_from_seed(db: Session) -> Profile:
-    """Réinjecte le profil depuis app/seed.py dans la base."""
-    profile = get_default_profile(db)
-    profile.name = "Développeur fullstack"
-    profile.data = json.dumps(DEFAULT_PROFILE, ensure_ascii=False)
+    """Réinjecte les profils seed (fullstack par défaut + chef de projet)."""
+    default = get_default_profile(db)
+    default.name = "Développeur fullstack"
+    default.data = json.dumps(DEFAULT_PROFILE, ensure_ascii=False)
     db.commit()
-    db.refresh(profile)
-    return profile
+    db.refresh(default)
+    _sync_extra_seed_profiles(db)
+    return default
+
+
+def _profile_key(raw_data: str) -> str | None:
+    try:
+        data = json.loads(raw_data)
+    except json.JSONDecodeError:
+        return None
+    key = data.get("key")
+    return str(key) if key else None
+
+
+def _sync_extra_seed_profiles(db: Session) -> None:
+    existing_by_key: dict[str, Profile] = {}
+    for profile in db.query(Profile).all():
+        key = _profile_key(profile.data)
+        if key:
+            existing_by_key[key] = profile
+
+    for name, data, is_default in SEED_PROFILES:
+        if is_default:
+            continue
+        key = data.get("key")
+        payload = json.dumps(data, ensure_ascii=False)
+        current = existing_by_key.get(key)
+        if current:
+            current.name = name
+            current.data = payload
+            continue
+        db.add(Profile(name=name, data=payload, is_default=False))
+    db.commit()
 
 
 @router.post("/default/sync-seed", response_model=ProfileRead)

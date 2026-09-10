@@ -125,7 +125,7 @@ const profileStatusLabel = {
           rows="14"
           spellcheck="false"
           :disabled="isBusy"
-          placeholder="Markdown du CV — modifiable avant export…"
+          placeholder="Markdown du CV - modifiable avant export…"
         ></textarea>
         <button type="button" class="btn-export" :disabled="!hasMarkdown || isBusy" @click="downloadPdf">
           Exporter le PDF
@@ -140,7 +140,7 @@ const profileStatusLabel = {
       <div class="gen-progress">
         <div class="gen-progress-head">
           <span>{{ isBusy ? progressLabel : "Prêt" }}</span>
-          <strong>{{ generating ? Math.round(progressPct) + "%" : isBusy ? "…" : "—" }}</strong>
+          <strong>{{ generating ? Math.round(progressPct) + "%" : isBusy ? "…" : "-" }}</strong>
         </div>
         <div
           class="gen-progress-track"

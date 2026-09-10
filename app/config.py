@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parent.parent
-PHOTO_PATH = "assets/lucas-schrever.jpg"
+PHOTO_PATH = "assets/DSC02211_square.jpg"
 
 
 class Settings(BaseSettings):

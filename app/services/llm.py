@@ -14,7 +14,7 @@ import yaml
 from app.config import settings
 from app.services.analyzer import JobAnalysis
 from app.services.competences import SKILL_CATEGORIES
-from app.services.sanitize import sanitize_cv_title
+from app.services.sanitize import replace_long_dashes, sanitize_cv_title
 
 LLM_CONFIG_FILE = settings.config_dir / "llm.yaml"
 
@@ -181,14 +181,23 @@ def _job_expectations_hint(job: JobAnalysis) -> list[str]:
     return hints
 
 
-def _skill_categories_hint() -> str:
+def _skill_categories_hint(cv_data: dict | None = None) -> str:
+    if cv_data:
+        labels = [
+            str(cat.get("label", "")).strip()
+            for cat in cv_data.get("competences") or []
+            if str(cat.get("label", "")).strip()
+        ]
+        if labels:
+            return ", ".join(labels)
     return ", ".join(SKILL_CATEGORIES)
 
 
 def _build_prompt(job: JobAnalysis, cv_data: dict, *, english: bool) -> list[dict]:
     lang = "anglais" if english else "français"
-    cats = _skill_categories_hint()
-    system = f"""Tu adaptes un CV développeur fullstack à une offre d'emploi.
+    cats = _skill_categories_hint(cv_data)
+    role = cv_data.get("header", {}).get("title_default") or "professionnel"
+    system = f"""Tu adaptes un CV ({role}) à une offre d'emploi.
 Le PDF final DOIT tenir sur 1 page A4 — sois concis.
 
 Réponds en JSON strict :
@@ -203,12 +212,13 @@ Consignes :
 - title : intitulé court (≤ 60 car.) aligné sur l'offre. Pas de H/F, CDI, localisation.
 
 - profil : 2 ou 3 phrases littéraires et humaines (200–320 car.), ton « ce que je fais ».
-  Pas de liste à puces. Décris ton approche et ta valeur ajoutée, reliée à l'offre.
+  Pas de liste à puces. Pas de tiret cadratin (—) ni demi-cadratin (–) : utilise : ou -.
+  Décris ton approche et ta valeur ajoutée, reliée à l'offre.
   Ex. : « Je conçois et livre… en gardant le fil entre besoin métier, code et mise en production. »
   Ne rien inventer hors cv_data.
 
 - competences : EXACTEMENT ces libellés (dans cet ordre si pertinent) : {cats}.
-  3–5 items courts par catégorie. Priorise les technos de l'offre.
+  3–5 items courts par catégorie. Priorise les compétences de l'offre.
 
 - bullets : reformule les missions (même nombre qu'à l'origine), phrases courtes (≤ 120 car.).
   Conserve les liens [texte](url). Mets en avant ce qui répond à l'offre.
@@ -323,7 +333,7 @@ def _apply_payload(payload: dict, cv_data: dict) -> LLMAdaptation:
     elif "title" in payload:
         result.warnings.append("Titre LLM vide — titre par défaut conservé.")
 
-    profil = str(payload.get("profil", "")).strip()
+    profil = replace_long_dashes(str(payload.get("profil", "")).strip())
     if profil:
         result.profil = profil[:500]
 
@@ -334,7 +344,11 @@ def _apply_payload(payload: dict, cv_data: dict) -> LLMAdaptation:
         for exp_id, rewritten_list in bullets_payload.items():
             if exp_id not in exp_ids or not isinstance(rewritten_list, list):
                 continue
-            result.bullets[exp_id] = [str(b).strip() for b in rewritten_list if str(b).strip()]
+            result.bullets[exp_id] = [
+                replace_long_dashes(str(b).strip())
+                for b in rewritten_list
+                if str(b).strip()
+            ]
 
     formation_payload = payload.get("formation_bullets", {})
     if isinstance(formation_payload, dict):
@@ -342,16 +356,22 @@ def _apply_payload(payload: dict, cv_data: dict) -> LLMAdaptation:
             if fid not in formation_ids or not isinstance(rewritten_list, list):
                 continue
             result.formation_bullets[fid] = [
-                str(b).strip() for b in rewritten_list if str(b).strip()
+                replace_long_dashes(str(b).strip())
+                for b in rewritten_list
+                if str(b).strip()
             ]
 
-    certs = str(payload.get("certifications", "")).strip()
+    certs = replace_long_dashes(str(payload.get("certifications", "")).strip())
     if certs:
         result.certifications = certs[:280]
 
     langues_raw = payload.get("langues")
     if isinstance(langues_raw, list):
-        result.langues = [str(lang).strip() for lang in langues_raw if str(lang).strip()]
+        result.langues = [
+            replace_long_dashes(str(lang).strip())
+            for lang in langues_raw
+            if str(lang).strip()
+        ]
 
     return result
 
@@ -364,7 +384,7 @@ def _build_compress_prompt(
     attempt: int,
 ) -> list[dict]:
     lang = "anglais" if english else "français"
-    cats = _skill_categories_hint()
+    cats = _skill_categories_hint(cv_data)
     system = f"""Tu compresses un CV pour qu'il tienne sur EXACTEMENT 1 page A4 PDF.
 Toutes les sections doivent rester : Profil, Expériences, Formations, Compétences techniques,
 Certifications, Langues. Ne supprime aucune section ni aucune expérience/formation.

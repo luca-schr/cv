@@ -10,7 +10,7 @@ noise_substrings:
   - gestion des cookies
   - chargement en cours
 
-title_hints:
+  title_hints:
   - développeur
   - developer
   - ingénieur
@@ -21,6 +21,10 @@ title_hints:
   - full stack
   - backend
   - frontend
+  - chef de projet
+  - product
+  - product owner
+  - scrum
   - junior
   - senior
   - stagiaire
@@ -58,3 +62,14 @@ tag_aliases:
   api: [api, rest, restful]
   fullstack: [fullstack, full stack, full-stack]
   seo: [seo, référencement, referencement]
+  figma: [figma]
+  trello: [trello]
+  linear: [linear]
+  semrush: [semrush]
+  prestashop: [prestashop, presta shop, presta]
+  elementor: [elementor]
+  divi: [divi]
+  scrum: [scrum]
+  agile: [agile, sprint]
+  ux: [ux, ux/ui, expérience utilisateur, experience utilisateur]
+  ui: [ui, ui design]

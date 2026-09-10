@@ -51,7 +51,7 @@ def render_header(data: dict, title: str) -> str:
     header = data["header"]
     contact = _render_contact(header)
     photo = header.get("photo", PHOTO_PATH)
-    if photo in {"lucas-schrever.jpg", "photo.jpg"}:
+    if photo in {"lucas-schrever.jpg", "photo.jpg", "DSC02211.jpg"}:
         photo = PHOTO_PATH
     return f"""<header class="cv-header">
 <div class="cv-header-main">
@@ -67,7 +67,7 @@ def render_experiences(data: dict, llm: LLMAdaptation | None = None) -> str:
     lines = ["## Expériences Professionnelles", ""]
     for exp in sort_by_date(data["experiences"]):
         lines.append(
-            f"### {exp['title']} — {exp['company']} "
+            f"### {exp['title']} - {exp['company']} "
             f'<span class="cv-dates">{exp["dates"]}</span>'
         )
         lines.append("")
@@ -84,7 +84,7 @@ def render_formations(data: dict, llm: LLMAdaptation | None = None) -> str:
     lines = ["## Formations", ""]
     for f in sort_by_date(data["formations"]):
         lines.append(
-            f"### {f['title']} — {f['school']} "
+            f"### {f['title']} - {f['school']} "
             f'<span class="cv-dates">{f["dates"]}</span>'
         )
         lines.append("")

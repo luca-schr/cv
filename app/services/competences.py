@@ -31,6 +31,18 @@ _CATEGORY_ALIASES: dict[str, str] = {
     "cybersecurite": "Cybersécurité",
     "sécurité": "Cybersécurité",
     "securite": "Cybersécurité",
+    "produit & méthodes": "Produit & méthodes",
+    "produit et methodes": "Produit & méthodes",
+    "produit & methodes": "Produit & méthodes",
+    "ux / ui": "UX / UI",
+    "ux/ui": "UX / UI",
+    "ux ui": "UX / UI",
+    "seo & acquisition": "SEO & acquisition",
+    "seo et acquisition": "SEO & acquisition",
+    "cms & no-code": "CMS & no-code",
+    "cms et no-code": "CMS & no-code",
+    "développement": "Développement",
+    "developpement": "Développement",
 }
 
 
@@ -62,22 +74,20 @@ def normalize_competences(
     english: bool = False,
 ) -> list[dict]:
     _ = english
-    buckets: dict[str, list[str]] = {cat: [] for cat in SKILL_CATEGORIES}
+    ordered: list[dict] = []
+    index_by_label: dict[str, int] = {}
 
     for cat in competences or []:
         label = str(cat.get("label", "")).strip()
         terms = _item_terms(cat.get("items", []))
         if not label or not terms:
             continue
-        target = _resolve_label(label)
-        if target:
-            buckets[target].extend(terms)
-        else:
-            buckets["Back-end"].extend(terms)
-
-    ordered: list[dict] = []
-    for label in SKILL_CATEGORIES:
-        terms = _item_terms(buckets[label])
-        if terms:
-            ordered.append({"label": label, "items": terms})
+        canonical = _resolve_label(label) or label
+        key = canonical.lower()
+        if key in index_by_label:
+            existing = ordered[index_by_label[key]]
+            existing["items"] = _item_terms(existing["items"] + terms)
+            continue
+        index_by_label[key] = len(ordered)
+        ordered.append({"label": canonical, "items": terms})
     return ordered

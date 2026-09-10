@@ -19,7 +19,7 @@
   --radius-card: 4px;
   --radius-inner: 2px;
   --editor-h: clamp(280px, calc(50vh - 6rem), 480px);
-  --font: Verdana, Geneva, sans-serif;
+  --font: Arial, Helvetica, "Liberation Sans", sans-serif;
   --fs: 0.8125rem;
   --fs-title: 0.875rem;
   --shadow: 0 1px 2px rgba(13, 71, 161, 0.06);
@@ -491,8 +491,8 @@ button.small { padding: 0.28rem 0.55rem; font-size: var(--fs); }
 }
 
 .cv-render img.photo {
-  width: 88px;
-  height: 88px;
+  width: 102px;
+  height: 102px;
   object-fit: cover;
   border-radius: 4px;
   float: right;
@@ -534,6 +534,12 @@ button.small { padding: 0.28rem 0.55rem; font-size: var(--fs); }
 
 .cv-render p, .cv-render li { margin: 0.2rem 0; }
 .cv-render ul { margin: 0.2rem 0 0.5rem; padding-left: 1.1rem; }
+
+.cv-render a {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
 
 .meta-grid {
   display: grid;

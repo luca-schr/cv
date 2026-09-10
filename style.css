@@ -26,7 +26,7 @@ html {
 }
 
 body {
-  font-family: Calibri, "Segoe UI", Tahoma, sans-serif;
+  font-family: Arial, Helvetica, "Liberation Sans", sans-serif;
   font-size: calc(var(--cv-p-pt) * var(--cv-scale));
   line-height: var(--cv-line-height);
   color: var(--color-text);
@@ -40,7 +40,7 @@ body {
 header.cv-header {
   position: relative;
   margin: 0 0 calc(0.55rem * var(--cv-gap-scale) * var(--cv-scale));
-  padding: 0 calc(3.85rem * var(--cv-scale)) calc(0.4rem * var(--cv-gap-scale) * var(--cv-scale)) 0;
+  padding: 0 calc(4.45rem * var(--cv-scale)) calc(0.4rem * var(--cv-gap-scale) * var(--cv-scale)) 0;
   border-bottom: 1.5px solid var(--color-accent);
 }
 
@@ -82,8 +82,8 @@ header.cv-header img.photo {
   position: absolute;
   top: 0;
   right: 0;
-  width: calc(3.7rem * var(--cv-scale));
-  height: calc(3.7rem * var(--cv-scale));
+  width: calc(4.25rem * var(--cv-scale));
+  height: calc(4.25rem * var(--cv-scale));
   object-fit: cover;
   object-position: center top;
   border: none;
@@ -134,7 +134,9 @@ a {
 }
 
 a {
-  text-decoration: none;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
 }
 
 p {

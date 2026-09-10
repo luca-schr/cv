@@ -35,6 +35,7 @@ def slugify(text: str, *, max_len: int = 40) -> str:
 
 PROFILE_SLUGS = {
     "fullstack": {"fr": "developpeur-fullstack", "en": "fullstack-developer"},
+    "chef-projet": {"fr": "chef-de-projet-digital", "en": "digital-project-manager"},
 }
 
 DEFAULT_COMPANY = {"fr": "defaut", "en": "default"}

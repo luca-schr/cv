@@ -32,7 +32,9 @@ class _Layout:
 
 
 def _normalize_photo_paths(markdown: str) -> str:
-    return markdown.replace("](lucas-schrever.jpg)", f"]({PHOTO_PATH})")
+    return markdown.replace("](lucas-schrever.jpg)", f"]({PHOTO_PATH})").replace(
+        "](DSC02211.jpg)", f"]({PHOTO_PATH})"
+    )
 
 
 def _write_override_css(layout: _Layout) -> Path:
@@ -197,7 +199,7 @@ def export_pdf_result(markdown: str) -> PdfExportResult:
     if not STYLE_FILE.exists():
         raise HTTPException(503, "style.css introuvable à la racine du projet")
 
-    photo = settings.assets_dir / "lucas-schrever.jpg"
+    photo = ROOT / Path(PHOTO_PATH)
     if not photo.exists():
         raise HTTPException(503, f"Photo introuvable : {photo}")
 
