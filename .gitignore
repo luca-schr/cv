@@ -21,11 +21,5 @@ tmp*.css
 .DS_Store
 Thumbs.db
 
-
-# Exports générés
-*.pdf
-tmp*.css
-
-# OS
-.DS_Store
-Thumbs.db
+# Photo source hors CV (trop lourde pour git)
+assets/DSC02211.jpg
