@@ -31,3 +31,17 @@ def init_db() -> None:
 
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
+    _ensure_sqlite_columns()
+
+
+def _ensure_sqlite_columns() -> None:
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    if "generations" not in inspector.get_table_names():
+        return
+    columns = {col["name"] for col in inspector.get_columns("generations")}
+    if "match_report" in columns:
+        return
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE generations ADD COLUMN match_report TEXT"))

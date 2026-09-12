@@ -12,8 +12,11 @@ from dataclasses import dataclass, field
 import yaml
 
 from app.config import settings
-from app.services.analyzer import JobAnalysis
+from app.llm_models import AdaptationPayload, JobBrief
+from app.services.analyzer import JobAnalysis, _looks_like_job_title, load_analysis_config
 from app.services.competences import SKILL_CATEGORIES
+from app.services.inventory import collect_blob, collect_phrases, phrase_is_grounded
+from app.services.matching import MatchReport, brief_from_heuristics
 from app.services.sanitize import replace_long_dashes, sanitize_cv_title
 
 LLM_CONFIG_FILE = settings.config_dir / "llm.yaml"
@@ -95,55 +98,78 @@ def _compact_cv(cv_data: dict) -> dict:
     }
 
 
-@dataclass
-class JobMetaExtraction:
-    title: str | None = None
-    company: str | None = None
-    used_llm: bool = False
-
-
-def extract_job_meta_with_llm(cleaned: str) -> JobMetaExtraction | None:
-    """Extrait intitulé de poste et employeur depuis la fiche (LLM)."""
-    text = (cleaned or "").strip()
+def extract_job_brief(job: JobAnalysis) -> JobBrief:
+    """Phase 1 — extraction structurée de l'offre (JSON / Pydantic)."""
+    fallback = brief_from_heuristics(job)
+    text = (job.cleaned or job.raw or "").strip()
     if len(text) < 20:
-        return None
+        return fallback
     config = load_llm_config()
     if not config.get("enabled", False):
-        return None
+        return fallback
 
-    system = """Tu extrais les métadonnées d'une offre d'emploi collée (souvent bruitée).
-Réponds en JSON strict : {"job_title": "...", "company": "..."}
+    system = """Tu extrais un brief structuré depuis une offre d'emploi (souvent bruitée).
+Réponds en JSON strict :
+{
+  "title": "...",
+  "company": "... ou null",
+  "keywords": ["..."],
+  "hard_skills": ["..."],
+  "soft_skills": ["..."],
+  "missions": ["..."],
+  "must_haves": ["..."]
+}
 
-- job_title : intitulé du POSTE offert.
-  • Si un titre explicite existe (en-tête, « poste », première ligne métier), reprends-le nettoyé.
-  • Sinon déduis un intitulé court et fidèle depuis missions + compétences (≤ 80 car.).
-  • Retire H/F, CDI, CDD, alternance, ville, salaire. Garde les technos si pertinentes.
-
-- company : nom court de l'EMPLOYEUR (entreprise, agence, administration).
-  • Cherche : Employeur, Entreprise, Société, « chez … », sigle entre parenthèses (ex. ECPAD).
-  • Ne confonds PAS intitulé de poste et employeur.
-  • null si introuvable ou incertain."""
+- title : intitulé du POSTE, court, sans H/F, CDI, ville, salaire.
+- company : employeur seulement, jamais l'intitulé. null si incertain.
+- hard_skills : technos, outils, méthodes nommées (max 16).
+- soft_skills : qualités humaines (max 8).
+- keywords : mots-clés de ciblage (max 16).
+- missions : 4 à 8 missions/attendus reformulés très court.
+- must_haves : exigences indispensables (max 10).
+N'invente rien qui n'est pas dans le texte."""
 
     messages = [
         {"role": "system", "content": system},
-        {"role": "user", "content": json.dumps({"job_text": text[:10000]}, ensure_ascii=False)},
+        {
+            "role": "user",
+            "content": json.dumps(
+                {
+                    "job_text": text[:10000],
+                    "heuristic_title": job.title,
+                    "heuristic_company": job.company,
+                    "heuristic_tags": sorted(job.tags),
+                },
+                ensure_ascii=False,
+            ),
+        },
     ]
     try:
         raw = _call_llm(messages, config, temperature=0.15)
-        payload = _parse_json(raw)
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError):
-        return JobMetaExtraction(used_llm=False)
+        brief = JobBrief.model_validate(_parse_json(raw))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError):
+        return fallback
 
-    title = sanitize_cv_title(str(payload.get("job_title") or payload.get("title") or "").strip())
-    company_raw = payload.get("company")
-    company = None
-    if company_raw is not None and str(company_raw).strip().lower() not in ("null", "none", ""):
-        company = re.sub(r"\s{2,}", " ", str(company_raw).strip())[:80]
+    if not brief.title:
+        brief.title = fallback.title
+    cfg = load_analysis_config()
+    if brief.company and _looks_like_job_title(brief.company, cfg):
+        brief.company = job.company
+    if not brief.hard_skills and fallback.hard_skills:
+        brief.hard_skills = fallback.hard_skills
+    return brief
 
-    return JobMetaExtraction(
-        title=title[:90] if title else None,
+
+def apply_brief_to_analysis(job: JobAnalysis, brief: JobBrief) -> JobAnalysis:
+    title = sanitize_cv_title(brief.title) if brief.title else job.title
+    company = brief.company or job.company
+    return JobAnalysis(
+        raw=job.raw,
+        cleaned=job.cleaned,
+        source=job.source,
         company=company,
-        used_llm=True,
+        title=title or job.title,
+        tags=set(job.tags),
     )
 
 
@@ -193,11 +219,19 @@ def _skill_categories_hint(cv_data: dict | None = None) -> str:
     return ", ".join(SKILL_CATEGORIES)
 
 
-def _build_prompt(job: JobAnalysis, cv_data: dict, *, english: bool) -> list[dict]:
+def _build_prompt(
+    job: JobAnalysis,
+    cv_data: dict,
+    brief: JobBrief,
+    match: MatchReport,
+    *,
+    english: bool,
+) -> list[dict]:
     lang = "anglais" if english else "français"
     cats = _skill_categories_hint(cv_data)
     role = cv_data.get("header", {}).get("title_default") or "professionnel"
-    system = f"""Tu adaptes un CV ({role}) à une offre d'emploi.
+    inventory = collect_phrases(cv_data)
+    system = f"""Tu adaptes un CV ({role}) à une offre, à partir d'un brief et d'un match déjà calculés.
 Le PDF final DOIT tenir sur 1 page A4 — sois concis.
 
 Réponds en JSON strict :
@@ -208,28 +242,33 @@ Réponds en JSON strict :
   "bullets": {{"id_experience": ["...", "..."]}}
 }}
 
-Consignes :
-- title : intitulé court (≤ 60 car.) aligné sur l'offre. Pas de H/F, CDI, localisation.
+Règle d'or : tu peux réordonner, reformuler ou accentuer, mais JAMAIS ajouter
+une compétence, techno, outil, certification ou expérience absente de cv_data / inventory.
+Les écarts (gaps) sont connus : ne les invente pas, ne les prétends pas maîtrisés.
 
-- profil : 2 ou 3 phrases littéraires et humaines (200–320 car.), ton « ce que je fais ».
-  Pas de liste à puces. Pas de tiret cadratin (—) ni demi-cadratin (–) : utilise : ou -.
-  Décris ton approche et ta valeur ajoutée, reliée à l'offre.
-  Ex. : « Je conçois et livre… en gardant le fil entre besoin métier, code et mise en production. »
-  Ne rien inventer hors cv_data.
+Rapprochement sémantique : pour des tâches déjà présentes, réutilise le vocabulaire
+exact de l'offre (vocabulary / emphasize).
 
-- competences : EXACTEMENT ces libellés (dans cet ordre si pertinent) : {cats}.
-  3–5 items courts par catégorie. Priorise les compétences de l'offre.
+- title : intitulé court (≤ 60 car.) aligné sur brief.title. Pas de H/F, CDI, ville.
+- profil : 2 ou 3 phrases (200–320 car.), ton « ce que je fais », sans puces.
+  Pas de tiret cadratin (—) ni demi-cadratin (–) : utilise : ou -.
+- competences : EXACTEMENT ces libellés : {cats}.
+  3–5 items courts, priorise emphasize. Interdit d'ajouter un gap.
+- bullets : même nombre qu'à l'origine, ≤ 120 car., conserve [liens](url).
+  Mets en avant ce qui recouvre emphasize / missions.
 
-- bullets : reformule les missions (même nombre qu'à l'origine), phrases courtes (≤ 120 car.).
-  Conserve les liens [texte](url). Mets en avant ce qui répond à l'offre.
-
-Reste crédible. LANGUE : {lang}."""
+LANGUE : {lang}."""
     user = {
-        "job_title_detected": job.title,
-        "job_company": job.company,
-        "job_tags": sorted(job.tags),
+        "job_brief": brief.model_dump(),
+        "match": {
+            "score": match.score,
+            "emphasize": match.emphasize,
+            "gaps": match.gaps,
+            "vocabulary": match.vocabulary,
+        },
         "job_expectations": _job_expectations_hint(job),
-        "job_text": job.cleaned[:8000],
+        "job_text": job.cleaned[:6000],
+        "inventory": inventory[:80],
         "cv_data": _compact_cv(cv_data),
     }
     return [
@@ -320,59 +359,91 @@ def _parse_competences(raw: object) -> list[dict] | None:
     return parsed or None
 
 
-def _apply_payload(payload: dict, cv_data: dict) -> LLMAdaptation:
+def _payload_from_raw(raw: dict) -> AdaptationPayload:
+    return AdaptationPayload.model_validate(raw)
+
+
+def _apply_payload(payload: dict | AdaptationPayload, cv_data: dict) -> LLMAdaptation:
+    parsed = payload if isinstance(payload, AdaptationPayload) else _payload_from_raw(payload)
     result = LLMAdaptation(used_llm=True)
     exp_ids = {exp["id"] for exp in cv_data.get("experiences", [])}
-    formation_ids = {
-        f.get("id", f["school"]) for f in cv_data.get("formations", [])
-    }
+    formation_ids = {f.get("id", f["school"]) for f in cv_data.get("formations", [])}
 
-    title = sanitize_cv_title(str(payload.get("title", "")).strip())
+    title = sanitize_cv_title(parsed.title)
     if title:
         result.title = title[:90]
-    elif "title" in payload:
+    else:
         result.warnings.append("Titre LLM vide — titre par défaut conservé.")
 
-    profil = replace_long_dashes(str(payload.get("profil", "")).strip())
+    profil = replace_long_dashes(parsed.profil)
     if profil:
         result.profil = profil[:500]
 
-    result.competences = _parse_competences(payload.get("competences"))
+    result.competences = _parse_competences(
+        [cat.model_dump() for cat in parsed.competences]
+    )
 
-    bullets_payload = payload.get("bullets", {})
-    if isinstance(bullets_payload, dict):
-        for exp_id, rewritten_list in bullets_payload.items():
-            if exp_id not in exp_ids or not isinstance(rewritten_list, list):
-                continue
-            result.bullets[exp_id] = [
-                replace_long_dashes(str(b).strip())
-                for b in rewritten_list
-                if str(b).strip()
-            ]
-
-    formation_payload = payload.get("formation_bullets", {})
-    if isinstance(formation_payload, dict):
-        for fid, rewritten_list in formation_payload.items():
-            if fid not in formation_ids or not isinstance(rewritten_list, list):
-                continue
-            result.formation_bullets[fid] = [
-                replace_long_dashes(str(b).strip())
-                for b in rewritten_list
-                if str(b).strip()
-            ]
-
-    certs = replace_long_dashes(str(payload.get("certifications", "")).strip())
-    if certs:
-        result.certifications = certs[:280]
-
-    langues_raw = payload.get("langues")
-    if isinstance(langues_raw, list):
-        result.langues = [
-            replace_long_dashes(str(lang).strip())
-            for lang in langues_raw
-            if str(lang).strip()
+    for exp_id, rewritten_list in parsed.bullets.items():
+        if exp_id not in exp_ids:
+            continue
+        result.bullets[exp_id] = [
+            replace_long_dashes(str(b).strip()) for b in rewritten_list if str(b).strip()
         ]
 
+    for fid, rewritten_list in parsed.formation_bullets.items():
+        if fid not in formation_ids:
+            continue
+        result.formation_bullets[fid] = [
+            replace_long_dashes(str(b).strip()) for b in rewritten_list if str(b).strip()
+        ]
+
+    if parsed.certifications:
+        result.certifications = replace_long_dashes(parsed.certifications)[:280]
+    if parsed.langues:
+        result.langues = [replace_long_dashes(lang) for lang in parsed.langues]
+
+    return _ground_adaptation(result, cv_data)
+
+
+def _source_bullets(exp: dict) -> list[str]:
+    return [b if isinstance(b, str) else b["text"] for b in exp.get("bullets", [])]
+
+
+def _ground_adaptation(result: LLMAdaptation, cv_data: dict) -> LLMAdaptation:
+    """Retire les ajouts non ancrés dans le CV source et aligne le nombre de puces."""
+    blob = collect_blob(cv_data)
+    dropped = 0
+
+    if result.competences:
+        grounded_cats: list[dict] = []
+        for cat in result.competences:
+            items = []
+            for item in cat.get("items") or []:
+                if phrase_is_grounded(str(item), blob):
+                    items.append(item)
+                else:
+                    dropped += 1
+            if items:
+                grounded_cats.append({"label": cat["label"], "items": items})
+        result.competences = grounded_cats or None
+
+    for exp in cv_data.get("experiences") or []:
+        source = _source_bullets(exp)
+        rewritten = result.bullets.get(exp["id"]) or []
+        aligned: list[str] = []
+        for idx, original in enumerate(source):
+            candidate = rewritten[idx] if idx < len(rewritten) else original
+            if phrase_is_grounded(candidate, blob):
+                aligned.append(candidate)
+            else:
+                aligned.append(original)
+                dropped += 1
+        result.bullets[exp["id"]] = aligned
+
+    if dropped:
+        result.warnings.append(
+            f"{dropped} reformulation(s) écartée(s) : hors inventaire du CV source."
+        )
     return result
 
 
@@ -466,25 +537,37 @@ def compress_cv_for_one_page(
         if not compressed.profil and not compressed.bullets and not compressed.competences:
             return None
         return _merge_adaptation(current, compressed)
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError) as exc:
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError) as exc:
         current.warnings.append(f"Compression LLM échouée ({exc}).")
         return None
 
 
 def adapt_with_llm(
-    job: JobAnalysis, cv_data: dict, *, force: bool = False, english: bool = False
+    job: JobAnalysis,
+    cv_data: dict,
+    *,
+    brief: JobBrief | None = None,
+    match: MatchReport | None = None,
+    force: bool = False,
+    english: bool = False,
 ) -> LLMAdaptation | None:
     config = load_llm_config()
     if not force and not config.get("enabled", False):
         return None
+    resolved_brief = brief or brief_from_heuristics(job)
+    resolved_match = match
+    if resolved_match is None:
+        from app.services.matching import score_match
+
+        resolved_match = score_match(cv_data, job, resolved_brief)
     try:
         raw = _call_llm(
-            _build_prompt(job, cv_data, english=english),
+            _build_prompt(job, cv_data, resolved_brief, resolved_match, english=english),
             config,
             temperature=float(config.get("temperature", 0.45)),
         )
         return _apply_payload(_parse_json(raw), cv_data)
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError) as exc:
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError) as exc:
         return LLMAdaptation(used_llm=False, warnings=[f"LLM indisponible ({exc})."])
 
 

@@ -46,6 +46,7 @@ class Generation(Base):
     use_llm: Mapped[bool] = mapped_column(Boolean, default=True)
     llm_applied: Mapped[bool] = mapped_column(Boolean, default=False)
     warnings: Mapped[str | None] = mapped_column(Text)  # JSON list
+    match_report: Mapped[str | None] = mapped_column(Text)  # JSON match panel
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     profile: Mapped["Profile"] = relationship(back_populates="generations")

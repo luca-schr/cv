@@ -114,16 +114,15 @@ DEFAULT_PROFILE = {
                 {"label": "GitHub", "url": "https://github.com/luca-schr/"},
             ],
         },
-        "photo": "assets/DSC02211_square.jpg",
+        "photo": "assets/DSC02211_squaree.jpg",
     },
     "technos_root": TECHNOS_ROOT,
     "technos_extended": TECHNOS_EXTENDED,
     "profil": {
         "text": (
-            "Je conçois et livre des produits web de bout en bout : interfaces React et Next.js, "
-            "API Node.js et sites WordPress, en gardant le fil entre le besoin métier, le code "
-            "et la mise en production. Mon approche : comprendre le contexte, itérer avec les "
-            "équipes, et livrer des bases maintenables, sécurisées et prêtes pour la prod."
+            "Je pilote et accompagne des projets de site web, applications et logiciels "
+            "du cadrage jusqu'au déploiement : technologies de développement fullstack, "
+            "UX/UI design, SEO et accessibilité web."
         ),
         "services": [
             "Applications web & SaaS : React, Next.js, état serveur (TanStack Query), intégration API",

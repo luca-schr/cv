@@ -165,6 +165,27 @@ const profileStatusLabel = {
       <ul v-if="result?.warnings?.length" class="warnings">
         <li v-for="(w, i) in result.warnings" :key="i">{{ w }}</li>
       </ul>
+      <div v-if="result?.match" class="match-panel">
+        <div class="match-head">
+          <h3>Match offre / CV</h3>
+          <strong>{{ Math.round((result.match.score || 0) * 100) }}%</strong>
+        </div>
+        <p class="muted match-hint">
+          Compétences de l'offre présentes dans le profil vs absentes (non inventées par le LLM).
+        </p>
+        <div class="match-tags" v-if="result.match.matched?.length">
+          <span class="match-label">Couvertes</span>
+          <span v-for="tag in result.match.matched" :key="'m-' + tag" class="tag ok">{{ tag }}</span>
+        </div>
+        <div class="match-tags" v-if="result.match.emphasize?.length">
+          <span class="match-label">À mettre en avant</span>
+          <span v-for="tag in result.match.emphasize" :key="'e-' + tag" class="tag accent">{{ tag }}</span>
+        </div>
+        <div class="match-tags" v-if="result.match.gaps?.length">
+          <span class="match-label">Absentes du profil</span>
+          <span v-for="tag in result.match.gaps" :key="'g-' + tag" class="tag gap">{{ tag }}</span>
+        </div>
+      </div>
     </section>
 
     <section class="panel section-history">

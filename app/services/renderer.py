@@ -51,7 +51,7 @@ def render_header(data: dict, title: str) -> str:
     header = data["header"]
     contact = _render_contact(header)
     photo = header.get("photo", PHOTO_PATH)
-    if photo in {"lucas-schrever.jpg", "photo.jpg", "DSC02211.jpg"}:
+    if photo in {"lucas-schrever.jpg", "photo.jpg", "DSC02211.jpg", "DSC02211_square.jpg"}:
         photo = PHOTO_PATH
     return f"""<header class="cv-header">
 <div class="cv-header-main">

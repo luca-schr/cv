@@ -16,6 +16,16 @@ from app.routers.profiles import get_default_profile
 router = APIRouter(prefix="/generations", tags=["generations"])
 
 
+def _parse_match(raw: str | None) -> dict | None:
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
 def _to_read(gen: Generation, db: Session) -> GenerationRead:
     job = db.get(JobPosting, gen.job_id)
     return GenerationRead(
@@ -30,6 +40,7 @@ def _to_read(gen: Generation, db: Session) -> GenerationRead:
         llm_applied=gen.llm_applied,
         warnings=json.loads(gen.warnings or "[]"),
         detected_tags=tags_from_json(job.detected_tags if job else None),
+        match=_parse_match(gen.match_report),
         created_at=gen.created_at,
     )
 
@@ -138,6 +149,9 @@ def create_generation(body: GenerateRequest, db: Session = Depends(get_db)):
         use_llm=body.use_llm,
         llm_applied=result.llm_applied,
         warnings=json.dumps(result.warnings, ensure_ascii=False),
+        match_report=json.dumps(result.match.to_public(), ensure_ascii=False)
+        if result.match
+        else None,
     )
     db.add(gen)
     db.commit()

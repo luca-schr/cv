@@ -32,8 +32,10 @@ class _Layout:
 
 
 def _normalize_photo_paths(markdown: str) -> str:
-    return markdown.replace("](lucas-schrever.jpg)", f"]({PHOTO_PATH})").replace(
-        "](DSC02211.jpg)", f"]({PHOTO_PATH})"
+    return (
+        markdown.replace("](lucas-schrever.jpg)", f"]({PHOTO_PATH})")
+        .replace("](DSC02211.jpg)", f"]({PHOTO_PATH})")
+        .replace("](DSC02211_square.jpg)", f"]({PHOTO_PATH})")
     )
 
 
@@ -144,7 +146,7 @@ def _grow_layout(layout: _Layout, factor: float) -> _Layout:
 
 
 def _find_fitting_layout(md_path: Path, pdf_path: Path, *, env: dict[str, str]) -> _Layout:
-    layout = _Layout(scale=1.0, gap_scale=1.0, line_height=1.3)
+    layout = _Layout(scale=1.0, gap_scale=1.0, line_height=1.22)
     for _ in range(12):
         if _fits_one_page(md_path, pdf_path, env=env, layout=layout):
             return layout

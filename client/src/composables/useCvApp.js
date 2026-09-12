@@ -9,9 +9,10 @@ import {
 } from "../naming.js";
 
 const PROGRESS_PHASES = [
-  { until: 22, step: "analyze", label: "Analyse et nettoyage de l'offre…" },
-  { until: 38, step: "meta", label: "Extraction poste et entreprise…" },
-  { until: 90, step: "adapt", label: "Adaptation du CV avec le LLM…" },
+  { until: 18, step: "analyze", label: "Analyse et nettoyage de l'offre…" },
+  { until: 36, step: "brief", label: "Extraction structurée du brief…" },
+  { until: 48, step: "match", label: "Scoring compétences offre / CV…" },
+  { until: 90, step: "rewrite", label: "Réécriture ciblée avec le LLM…" },
   { until: 97, step: "render", label: "Rendu markdown final…" },
 ];
 
@@ -84,8 +85,9 @@ export function useCvApp() {
 
   const progressSteps = [
     { id: "analyze", label: "Analyse de l'offre" },
-    { id: "meta", label: "Poste & entreprise" },
-    { id: "adapt", label: "Adaptation LLM" },
+    { id: "brief", label: "Brief structuré" },
+    { id: "match", label: "Match compétences" },
+    { id: "rewrite", label: "Réécriture LLM" },
     { id: "render", label: "Rendu markdown" },
   ];
 
@@ -213,7 +215,9 @@ export function useCvApp() {
       const phase =
         PROGRESS_PHASES.find((p) => progressPct.value <= p.until) || PROGRESS_PHASES.at(-1);
       const phaseIdx = PROGRESS_PHASES.indexOf(phase);
-      const speeds = useLlm.value ? [0.35, 0.28, 0.12, 0.18] : [0.55, 0.35, 0.08, 0.12];
+      const speeds = useLlm.value
+        ? [0.4, 0.22, 0.35, 0.1, 0.2]
+        : [0.55, 0.4, 0.45, 0.08, 0.15];
       const bump = speeds[phaseIdx] * (1 - progressPct.value / 100) * (0.85 + Math.random() * 0.3);
       progressPct.value = Math.min(96, progressPct.value + bump);
       if (Date.now() - started > 45000) {

@@ -201,20 +201,10 @@ def extract_company(cleaned: str, config: dict | None = None) -> str | None:
 def analyze_job(
     raw_text: str, source: str, title_fallback: str, *, use_llm: bool = False
 ) -> JobAnalysis:
+    _ = use_llm
     config = load_analysis_config()
     cleaned = clean_job_text(raw_text, config)
     company = extract_company(cleaned, config)
     title = extract_job_title(cleaned, config, title_fallback)
-
-    if use_llm:
-        from app.services.llm import extract_job_meta_with_llm
-
-        meta = extract_job_meta_with_llm(cleaned)
-        if meta and meta.used_llm:
-            if meta.title:
-                title = meta.title
-            if meta.company and not _looks_like_job_title(meta.company, config):
-                company = meta.company
-
     tags = extract_tags(cleaned, config)
     return JobAnalysis(raw=raw_text, cleaned=cleaned, source=source, company=company, title=title, tags=tags)

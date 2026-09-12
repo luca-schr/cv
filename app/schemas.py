@@ -70,6 +70,7 @@ class GenerationRead(BaseModel):
     llm_applied: bool
     warnings: list[str]
     detected_tags: list[str]
+    match: dict | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
