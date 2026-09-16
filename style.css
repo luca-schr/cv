@@ -1,38 +1,38 @@
-/* CV PDF — A4 une page · descrescendo h1 > h2 > p */
+/* CV PDF — A4 une page · Tahoma = sans web-safe la plus étroite */
 
 @font-face {
-  font-family: "Arial";
+  font-family: "Tahoma";
   font-style: normal;
   font-weight: 400;
-  src: url("file:///mnt/c/Windows/Fonts/arial.ttf");
+  src: url("assets/fonts/tahoma.ttf");
 }
 
 @font-face {
-  font-family: "Arial";
+  font-family: "Tahoma";
   font-style: italic;
   font-weight: 400;
-  src: url("file:///mnt/c/Windows/Fonts/ariali.ttf");
+  src: url("assets/fonts/tahoma.ttf");
 }
 
 @font-face {
-  font-family: "Arial";
+  font-family: "Tahoma";
   font-style: normal;
   font-weight: 600;
-  src: url("file:///mnt/c/Windows/Fonts/arialbd.ttf");
+  src: url("assets/fonts/tahomabd.ttf");
 }
 
 @font-face {
-  font-family: "Arial";
+  font-family: "Tahoma";
   font-style: normal;
   font-weight: 700;
-  src: url("file:///mnt/c/Windows/Fonts/arialbd.ttf");
+  src: url("assets/fonts/tahomabd.ttf");
 }
 
 @font-face {
-  font-family: "Arial";
+  font-family: "Tahoma";
   font-style: italic;
   font-weight: 700;
-  src: url("file:///mnt/c/Windows/Fonts/arialbi.ttf");
+  src: url("assets/fonts/tahomabd.ttf");
 }
 
 @page {
@@ -61,7 +61,7 @@ html {
 }
 
 body {
-  font-family: Arial, Helvetica, "Liberation Sans", sans-serif;
+  font-family: Tahoma, Arial, Helvetica, sans-serif;
   font-size: calc(var(--cv-p-pt) * var(--cv-scale));
   line-height: var(--cv-line-height);
   color: var(--color-text);

@@ -1,10 +1,4 @@
-const PROFILE_SLUGS = {
-  fullstack: { fr: "developpeur-fullstack", en: "fullstack-developer" },
-  "chef-projet": { fr: "chef-de-projet-digital", en: "digital-project-manager" },
-};
-
-const DEFAULT_COMPANY = { fr: "defaut", en: "default" };
-const USED_KEY = "cv-used-basenames";
+const VERSIONS_KEY = "cv-export-versions";
 
 export function slugify(text, maxLen = 40) {
   const raw = String(text ?? "").trim();
@@ -24,56 +18,34 @@ export function slugify(text, maxLen = 40) {
   );
 }
 
-export function profileKeyOf(profile) {
-  return profile?.data?.key || (profile?.is_default ? "fullstack" : "") || "profil";
+export function stem({ title, company, english }) {
+  const parts = ["lucas-schrever", slugify(title, 40) || "profil", slugify(company, 24) || "defaut"];
+  if (english) parts.push("en");
+  return parts.join("-");
 }
 
-export function profileFileSlug(profile, english) {
-  const key = profileKeyOf(profile);
-  const lang = english ? "en" : "fr";
-  if (PROFILE_SLUGS[key]?.[lang]) return PROFILE_SLUGS[key][lang];
-  return slugify(profile?.name || key, 40) || "profil";
+export function buildBasename(opts, version = 1) {
+  return `${stem(opts)}-v${Math.max(1, Number(version) || 1)}`;
 }
 
-export function companyFileSlug(company, english) {
-  const slug = slugify(company || "", 24);
-  if (slug) return slug;
-  return english ? DEFAULT_COMPANY.en : DEFAULT_COMPANY.fr;
-}
-
-export function suggestedBasename(profile, company, english) {
-  const profileSlug = profileFileSlug(profile, english);
-  const companySlug = companyFileSlug(company, english);
-  const lang = english ? "en" : "fr";
-  return `lucas-schrever-${profileSlug}-${companySlug}-${lang}`;
-}
-
-export function loadUsedBasenames() {
+export function loadVersions() {
   try {
-    const raw = JSON.parse(localStorage.getItem(USED_KEY) || "[]");
-    return Array.isArray(raw) ? raw.filter((x) => typeof x === "string") : [];
+    const raw = JSON.parse(localStorage.getItem(VERSIONS_KEY) || "{}");
+    return raw && typeof raw === "object" ? raw : {};
   } catch {
-    return [];
+    return {};
   }
 }
 
-export function saveUsedBasenames(names) {
-  localStorage.setItem(USED_KEY, JSON.stringify(names));
+export function nextVersion(stemKey, versions = loadVersions()) {
+  return (Number(versions[stemKey]) || 0) + 1;
 }
 
-export function uniqueBasename(base, used) {
-  const root = (base || "lucas-schrever-cv").replace(/\.md$|\.pdf$/gi, "");
-  if (!used.includes(root)) return root;
-  let n = 1;
-  while (used.includes(`${root}-${n}`)) n += 1;
-  return `${root}-${n}`;
-}
-
-export function rememberBasename(base, used) {
-  const name = (base || "").replace(/\.md$|\.pdf$/gi, "");
-  if (!name) return used;
-  if (used.includes(name)) return used;
-  const next = [...used, name];
-  saveUsedBasenames(next);
-  return next;
+export function rememberVersion(stemKey, version) {
+  const versions = loadVersions();
+  const current = Number(versions[stemKey]) || 0;
+  const next = Math.max(current, Number(version) || 1);
+  versions[stemKey] = next;
+  localStorage.setItem(VERSIONS_KEY, JSON.stringify(versions));
+  return versions;
 }

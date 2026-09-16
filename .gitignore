@@ -8,8 +8,8 @@ venv/
 node_modules/
 client/dist/
 
-# Données locales & secrets
-data/
+# Secrets & SQLite local
+*.db
 .env
 .env.*
 
@@ -23,3 +23,8 @@ Thumbs.db
 
 # Photo source hors CV (trop lourde pour git)
 assets/DSC02211.jpg
+
+# Polices MS (Tahoma) — copier depuis Windows si besoin :
+#   cp /mnt/c/Windows/Fonts/tahoma.ttf /mnt/c/Windows/Fonts/tahomabd.ttf assets/fonts/
+assets/fonts/*.ttf
+assets/fonts/*.otf

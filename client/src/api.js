@@ -20,19 +20,8 @@ async function request(url, options = {}) {
 }
 
 export const api = {
-  llmStatus: () => request("/api/llm/status"),
   profiles: () => request("/api/profiles"),
-  profileMarkdown: (id) => request(`/api/profiles/${id}/markdown`),
-  generations: () => request("/api/generations"),
-  generation: (id) => request(`/api/generations/${id}`),
-  createGeneration: (body) =>
-    request("/api/generations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }),
-  deleteGeneration: (id) => request(`/api/generations/${id}`, { method: "DELETE" }),
-  purgeGenerations: () => request("/api/generations", { method: "DELETE" }),
+  profile: (id, lang = "fr") => request(`/api/profiles/${id}?lang=${lang}`),
   exportPdf: (markdown, filename) =>
     request("/api/export/pdf", {
       method: "POST",

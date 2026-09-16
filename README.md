@@ -1,8 +1,8 @@
-# CV Generator
+# CV
 
-Génération de CV adaptés aux offres — FastAPI, SQLite, Vue 3, GLM-5.3-Flash (Ollama Cloud).
+Profils JSON bilingues (`{fr, en}`) → aperçu markdown → PDF A4 **1 page**.
 
-## Lancer le projet
+## Lancer
 
 ```bash
 python -m venv .venv
@@ -14,31 +14,30 @@ uvicorn app.main:app --reload
 
 Interface : **http://127.0.0.1:8000**
 
-Uvicorn sert l’API et le front compilé (`client/dist`). Pas besoin de `npm run dev`.
+Hot-reload front : `cd client && npm run dev` (port 5173). Après un changement React servi par uvicorn : `npm run build`.
 
-Après une modification Vue, reconstruire : `cd client && npm run build` (uvicorn `--reload` ne voit pas le JS).
+L'export PDF nécessite Pandoc + WeasyPrint. L'échelle est calée en **1 rendu** si le CV tient déjà en une page (recherche dichotomique uniquement si trop long).
 
-`npm run dev` (port 5173) n’est utile que pour le hot-reload pendant un gros chantier UI.
+## Données
 
-Clé API : `OLLAMA_API_KEY` dans un fichier `.env` à la racine (voir `.env.example`).
-Pas besoin du daemon Ollama local. Statut LLM : http://127.0.0.1:8000/api/llm/status
+Identité partagée : `data/person.json`
 
-Au démarrage, le profil en base est resynchronisé depuis `app/seed.py`.
+Chaque profil : `data/profiles/*.json`
 
-## Config
+Tous les textes traduisibles sont un objet **`{ "fr": "...", "en": "..." }`**. Le français est la langue par défaut ; l'anglais n'ajoute que le suffixe `-en` au nom de fichier.
 
-| Fichier | Rôle |
-|---------|------|
-| `config/llm.yaml` | Modèle Ollama Cloud, température, timeout |
-| `config/analysis.yaml` | Tags détectés dans les offres |
-| `app/seed.py` | Profil template (expériences, compétences, technos) |
-| `client/` | App Vue 3 + Vite |
+| Champ | Forme |
+|---|---|
+| `profile` | intitulé (`Développeur fullstack`) |
+| `description` | accroche |
+| `skills` | `{ label, items[] }` |
+| `experiences` | `{ title, company, time, description }` |
+| `formations` | `{ title, school, time, description }` |
+| `certifications` | `{ title }` |
+| `languages` | `{ title, level }` |
 
-## Utilisation
+## Nommage PDF
 
-1. Choisir un profil
-2. Coller l'offre d'emploi
-3. Cocher **LLM** (recommandé)
-4. **Adapter le CV** → markdown éditable, **Exporter le PDF**
+`lucas-schrever-[poste]-[defaut|societe][-en]-vX`
 
-L'export PDF nécessite Pandoc + WeasyPrint sur la machine ; l'app affiche un message si l'outil est absent.
+Exemples : `lucas-schrever-developpeur-fullstack-defaut-v1.pdf`, `lucas-schrever-fullstack-developer-jane-en-v2.pdf`

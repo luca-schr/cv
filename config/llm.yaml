@@ -1,6 +1,0 @@
-enabled: true
-provider: ollama
-model: glm-5.3-flash
-base_url: https://ollama.com
-temperature: 0.5
-timeout_seconds: 180

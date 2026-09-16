@@ -1,0 +1,12 @@
+{
+  "name": "Lucas Schrever",
+  "email": "lucas.schrever@outlook.com",
+  "phone": "+33 7 75 28 61 34",
+  "photo": "assets/DSC02211_squaree.jpg",
+  "location": { "fr": "Paris, France", "en": "Paris, France" },
+  "links": [
+    { "label": { "fr": "LinkedIn", "en": "LinkedIn" }, "url": "https://linkedin.com/in/lucas-schrever" },
+    { "label": { "fr": "Portfolio", "en": "Portfolio" }, "url": "https://lucas-schrever.vercel.app" },
+    { "label": { "fr": "GitHub", "en": "GitHub" }, "url": "https://github.com/luca-schr/" }
+  ]
+}
