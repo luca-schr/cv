@@ -59,7 +59,14 @@ def load_person() -> dict:
     return json.loads(PERSON_FILE.read_text(encoding="utf-8"))
 
 
-PROFILE_ORDER = ("fullstack", "chef-projet", "wordpress", "cyber-grc")
+PROFILE_ORDER = (
+    "fullstack",
+    "chef-projet",
+    "chef-projet-it",
+    "product-owner",
+    "wordpress",
+    "cyber-grc",
+)
 
 
 def load_profiles() -> list[dict]:

@@ -1,0 +1,129 @@
+{
+  "id": "chef-projet-it",
+  "profile": { "fr": "Chef de projet IT", "en": "IT project manager" },
+  "description": {
+    "fr": "Je pilote la gestion opérationnelle de projets et lots IT : encadrement, qualité de service, respect des délais et du budget, coordination des interlocuteurs internes et clients.",
+    "en": "I lead operational delivery of IT projects and workstreams: team coordination, service quality, deadlines and budget, and stakeholder communication."
+  },
+  "skills": [
+    {
+      "label": { "fr": "Pilotage & delivery", "en": "Delivery & management" },
+      "items": [
+        { "fr": "Pilotage opérationnel", "en": "Operational delivery" },
+        { "fr": "Qualité des livrables", "en": "Deliverable quality" },
+        { "fr": "Suivi des délais", "en": "Deadline tracking" },
+        { "fr": "Budgets & indicateurs", "en": "Budgets & KPIs" },
+        { "fr": "Plans d'actions", "en": "Action plans" }
+      ]
+    },
+    {
+      "label": { "fr": "Organisation & méthodes", "en": "Organization & methods" },
+      "items": [
+        { "fr": "Agile / Scrum", "en": "Agile / Scrum" },
+        { "fr": "Encadrement d'équipe", "en": "Team leadership" },
+        { "fr": "Priorisation", "en": "Prioritization" },
+        { "fr": "Recette", "en": "UAT / QA" },
+        { "fr": "Reporting", "en": "Reporting" }
+      ]
+    },
+    {
+      "label": { "fr": "Outils Microsoft", "en": "Microsoft tools" },
+      "items": [
+        { "fr": "Microsoft Office", "en": "Microsoft Office" },
+        { "fr": "Office 365", "en": "Office 365" },
+        { "fr": "Excel", "en": "Excel" },
+        { "fr": "PowerPoint", "en": "PowerPoint" },
+        { "fr": "Outlook", "en": "Outlook" }
+      ]
+    },
+    {
+      "label": { "fr": "Environnement IT", "en": "IT environment" },
+      "items": [
+        { "fr": "Windows", "en": "Windows" },
+        { "fr": "WordPress", "en": "WordPress" },
+        { "fr": "Git", "en": "Git" },
+        { "fr": "Trello", "en": "Trello" }
+      ]
+    },
+    {
+      "label": { "fr": "Bases de développement", "en": "Development basics" },
+      "items": [
+        { "fr": "HTML / CSS", "en": "HTML / CSS" },
+        { "fr": "JavaScript", "en": "JavaScript" },
+        { "fr": "PHP", "en": "PHP" },
+        { "fr": "SQL", "en": "SQL" }
+      ]
+    }
+  ],
+  "experiences": [
+    {
+      "title": { "fr": "Développeur", "en": "Developer" },
+      "company": { "fr": "Jane", "en": "Jane" },
+      "time": { "fr": "Déc. 2025 - Mai 2026", "en": "Dec. 2025 - May 2026" },
+      "description": {
+        "fr": "- Livraison du site vitrine [jane-energie.fr](https://jane-energie.fr) et de l'application [jane-app.fr](https://jane-app.fr) : cadrage, suivi des délais et qualité des livrables.\n- Coordination des interlocuteurs métier et reporting d'avancement.\n- Développement web (HTML/CSS, JavaScript) et environnement Windows / Office 365.",
+        "en": "- Delivered the showcase site [jane-energie.fr](https://jane-energie.fr) and the app [jane-app.fr](https://jane-app.fr): scoping, deadline tracking and deliverable quality.\n- Coordinated business stakeholders and progress reporting.\n- Web development (HTML/CSS, JavaScript) and Windows / Office 365."
+      }
+    },
+    {
+      "title": { "fr": "Webmaster", "en": "Webmaster" },
+      "company": { "fr": "Shin Agency", "en": "Shin Agency" },
+      "time": { "fr": "Août 2023 - Sept. 2024", "en": "Aug. 2023 - Sep. 2024" },
+      "description": {
+        "fr": "- Webmastering et maintenance d'un parc de 15+ sites WordPress : organisation, priorisation et suivi des demandes.\n- Refonte de [shin-agency.com](https://shin-agency.com) : recette, qualité des livrables et respect des délais.\n- Coordination des interlocuteurs internes et reporting.",
+        "en": "- Webmastering and maintenance of a 15+ WordPress estate: organization, prioritization and request tracking.\n- Redesign of [shin-agency.com](https://shin-agency.com): QA, deliverable quality and deadline control.\n- Internal stakeholder coordination and reporting."
+      }
+    },
+    {
+      "title": { "fr": "Chef de projet digital", "en": "Digital project manager" },
+      "company": { "fr": "Aube en Champagne Attractivité", "en": "Aube en Champagne Attractivité" },
+      "time": { "fr": "Mai - Août 2022", "en": "May - Aug. 2022" },
+      "description": {
+        "fr": "- Pilotage opérationnel de la refonte de l'extranet aube-champagne.com : cadrage, planning, recette et coordination des équipes.\n- Suivi des délais, indicateurs et plans d'actions ; garantie de la qualité des livrables.",
+        "en": "- Operational delivery of the aube-champagne.com extranet redesign: scoping, planning, QA and team coordination.\n- Tracked deadlines, KPIs and action plans; owned deliverable quality."
+      }
+    },
+    {
+      "title": { "fr": "Consultant marketing digital", "en": "Digital marketing consultant" },
+      "company": { "fr": "Kyriba France", "en": "Kyriba France" },
+      "time": { "fr": "Mai 2020 - Août 2021", "en": "May 2020 - Aug. 2021" },
+      "description": {
+        "fr": "- Production de landing pages et campagnes digitales : priorisation, délais et qualité de service.\n- Audits SEO et suivi d'indicateurs d'engagement sur kyriba.com (FR, ES, IT).\n- Coordination multi-pays et reporting auprès des équipes marketing.",
+        "en": "- Landing pages and digital campaigns: prioritization, deadlines and service quality.\n- SEO audits and engagement KPIs on kyriba.com (FR, ES, IT).\n- Multi-country coordination and reporting to marketing teams."
+      }
+    }
+  ],
+  "formations": [
+    {
+      "title": { "fr": "MBA Expert en Cybersécurité", "en": "MBA Cybersecurity expert" },
+      "school": { "fr": "MBA ESG Paris", "en": "MBA ESG Paris" },
+      "time": { "fr": "2025 - 2026", "en": "2025 - 2026" },
+      "description": {
+        "fr": "Gouvernance SI, gestion des risques, RGPD et pilotage de projets IT ; préparation CompTIA Security+.",
+        "en": "IS governance, risk management, GDPR and IT project delivery; CompTIA Security+ preparation."
+      }
+    },
+    {
+      "title": { "fr": "Mastère Management de la Transformation Digitale", "en": "Master's in Digital Transformation Management" },
+      "school": { "fr": "IIM / ESILV", "en": "IIM / ESILV" },
+      "time": { "fr": "2018 - 2024", "en": "2018 - 2024" },
+      "description": {
+        "fr": "Double diplôme IIM / ESILV (RNCP niv. 7) : gestion de projet, agile/Scrum, conduite du changement, data et bases de développement web.",
+        "en": "Dual IIM / ESILV degree (RNCP level 7): project management, agile/Scrum, change management, data and web development basics."
+      }
+    }
+  ],
+  "certifications": [
+    { "title": { "fr": "CompTIA Security+ (en cours)", "en": "CompTIA Security+ (in progress)" } }
+  ],
+  "languages": [
+    {
+      "title": { "fr": "Anglais", "en": "English" },
+      "level": { "fr": "professionnel, C1 (TOEFL/TOEIC)", "en": "professional, C1 (TOEFL/TOEIC)" }
+    },
+    {
+      "title": { "fr": "Espagnol", "en": "Spanish" },
+      "level": { "fr": "courant", "en": "fluent" }
+    }
+  ]
+}

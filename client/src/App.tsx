@@ -1,13 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { api } from "./api.js";
-import { buildBasename, loadVersions, nextVersion, rememberVersion, stem } from "./naming.js";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api } from "./api";
+import { buildBasename, loadVersions, nextVersion, rememberVersion, stem } from "./naming";
+import type { LoadStatus, ProfileSummary } from "./types";
 
-function labelOf(profile, english) {
-  return english ? profile?.profile?.en || profile?.profile?.fr : profile?.profile?.fr || "";
+function labelOf(profile: ProfileSummary | null | undefined, english: boolean): string {
+  if (!profile?.profile) return "";
+  return english ? profile.profile.en || profile.profile.fr || "" : profile.profile.fr || "";
+}
+
+function errMessage(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback;
 }
 
 export default function App() {
-  const [profiles, setProfiles] = useState([]);
+  const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
   const [profileId, setProfileId] = useState("");
   const [english, setEnglish] = useState(false);
   const [company, setCompany] = useState("");
@@ -16,9 +22,10 @@ export default function App() {
   const [title, setTitle] = useState("");
   const [filename, setFilename] = useState("");
   const [filenameDirty, setFilenameDirty] = useState(false);
-  const [status, setStatus] = useState("loading");
+  const [status, setStatus] = useState<LoadStatus>("loading");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
+  const toastTimer = useRef<number | undefined>(undefined);
 
   const selected = profiles.find((p) => p.id === profileId) || null;
   const heading = title || labelOf(selected, english) || "Profil";
@@ -31,10 +38,10 @@ export default function App() {
     [heading, company, english, version]
   );
 
-  const showToast = useCallback((msg) => {
+  const showToast = useCallback((msg: string) => {
     setToast(msg);
-    window.clearTimeout(showToast._t);
-    showToast._t = window.setTimeout(() => setToast(""), 2800);
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(""), 2800);
   }, []);
 
   useEffect(() => {
@@ -49,7 +56,7 @@ export default function App() {
       } catch (err) {
         if (!cancelled) {
           setStatus("error");
-          showToast(err.message || "Chargement impossible");
+          showToast(errMessage(err, "Chargement impossible"));
         }
       }
     })();
@@ -73,7 +80,7 @@ export default function App() {
       } catch (err) {
         if (!cancelled) {
           setStatus("error");
-          showToast(err.message || "Profil introuvable");
+          showToast(errMessage(err, "Profil introuvable"));
         }
       }
     })();
@@ -107,7 +114,7 @@ export default function App() {
       setFilenameDirty(false);
       showToast("PDF exporté (1 page)");
     } catch (err) {
-      showToast(err.message || "Export impossible");
+      showToast(errMessage(err, "Export impossible"));
     } finally {
       setBusy(false);
     }
@@ -117,7 +124,7 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
-          <img src="/favicon.ico" alt="" className="brand-logo" width="32" height="32" />
+          <img src="/favicon.ico" alt="" className="brand-logo" width={32} height={32} />
           <h1>CV</h1>
         </div>
         <label className="checkbox">
@@ -162,7 +169,7 @@ export default function App() {
             <span className="sr-only">Nom du fichier</span>
             <input
               className="filename-input"
-              spellCheck="false"
+              spellCheck={false}
               value={filename}
               placeholder="lucas-schrever-…"
               onChange={(e) => {
@@ -186,7 +193,7 @@ export default function App() {
             Version
             <input
               type="number"
-              min="1"
+              min={1}
               value={version}
               disabled={busy}
               onChange={(e) => {
@@ -199,7 +206,7 @@ export default function App() {
         <textarea
           className="editor-field preview"
           rows={18}
-          spellCheck="false"
+          spellCheck={false}
           disabled={busy}
           value={markdown}
           onChange={(e) => setMarkdown(e.target.value)}

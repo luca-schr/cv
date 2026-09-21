@@ -14,7 +14,7 @@ uvicorn app.main:app --reload
 
 Interface : **http://127.0.0.1:8000**
 
-Hot-reload front : `cd client && npm run dev` (port 5173). Après un changement React servi par uvicorn : `npm run build`.
+Hot-reload front (React + TypeScript) : `cd client && npm run dev` (port 5173). Après un changement servi par uvicorn : `npm run build`.
 
 L'export PDF nécessite Pandoc + WeasyPrint. L'échelle est calée en **1 rendu** si le CV tient déjà en une page (recherche dichotomique uniquement si trop long).
 
