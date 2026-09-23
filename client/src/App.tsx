@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
-import { buildBasename, loadVersions, nextVersion, rememberVersion, stem } from "./naming";
+import { buildBasename } from "./naming";
 import type { LoadStatus, ProfileSummary } from "./types";
 
 function labelOf(profile: ProfileSummary | null | undefined, english: boolean): string {
@@ -16,26 +16,21 @@ export default function App() {
   const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
   const [profileId, setProfileId] = useState("");
   const [english, setEnglish] = useState(false);
-  const [company, setCompany] = useState("");
-  const [version, setVersion] = useState(1);
   const [markdown, setMarkdown] = useState("");
   const [title, setTitle] = useState("");
   const [filename, setFilename] = useState("");
   const [filenameDirty, setFilenameDirty] = useState(false);
   const [status, setStatus] = useState<LoadStatus>("loading");
   const [busy, setBusy] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<number | undefined>(undefined);
 
   const selected = profiles.find((p) => p.id === profileId) || null;
   const heading = title || labelOf(selected, english) || "Profil";
-  const autoStem = useMemo(
-    () => stem({ title: heading, company, english }),
-    [heading, company, english]
-  );
   const autoName = useMemo(
-    () => buildBasename({ title: heading, company, english }, version),
-    [heading, company, english, version]
+    () => buildBasename({ title: heading, english }),
+    [heading, english]
   );
 
   const showToast = useCallback((msg: string) => {
@@ -90,10 +85,6 @@ export default function App() {
   }, [profileId, english, showToast]);
 
   useEffect(() => {
-    setVersion(nextVersion(autoStem, loadVersions()));
-  }, [autoStem]);
-
-  useEffect(() => {
     if (!filenameDirty) setFilename(autoName);
   }, [autoName, filenameDirty]);
 
@@ -109,13 +100,30 @@ export default function App() {
       a.download = `${filename || autoName}.pdf`;
       a.click();
       URL.revokeObjectURL(href);
-      rememberVersion(autoStem, version);
-      setVersion(nextVersion(autoStem, loadVersions()));
       setFilenameDirty(false);
       showToast("PDF exporté (1 page)");
     } catch (err) {
       showToast(errMessage(err, "Export impossible"));
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyDefault() {
+    if (!profileId || !markdown.trim()) return;
+    setBusy(true);
+    setTranslating(true);
+    try {
+      const result = await api.applyDefault(profileId, markdown, english ? "en" : "fr");
+      if (result.translated) {
+        showToast("Défaut enregistré, autre langue traduite");
+      } else {
+        showToast(result.error || "Défaut enregistré (traduction indisponible)");
+      }
+    } catch (err) {
+      showToast(errMessage(err, "Enregistrement impossible"));
+    } finally {
+      setTranslating(false);
       setBusy(false);
     }
   }
@@ -179,30 +187,6 @@ export default function App() {
             />
           </label>
         </div>
-        <div className="meta-row">
-          <label>
-            Société
-            <input
-              value={company}
-              disabled={busy}
-              placeholder="defaut si vide"
-              onChange={(e) => setCompany(e.target.value)}
-            />
-          </label>
-          <label className="version-field">
-            Version
-            <input
-              type="number"
-              min={1}
-              value={version}
-              disabled={busy}
-              onChange={(e) => {
-                setVersion(Math.max(1, Number(e.target.value) || 1));
-                setFilenameDirty(false);
-              }}
-            />
-          </label>
-        </div>
         <textarea
           className="editor-field preview"
           rows={18}
@@ -212,9 +196,19 @@ export default function App() {
           onChange={(e) => setMarkdown(e.target.value)}
           placeholder="Markdown du CV"
         />
-        <button type="button" className="btn-export" disabled={!markdown.trim() || busy} onClick={downloadPdf}>
-          {busy ? "Export…" : "Exporter le PDF"}
-        </button>
+        <div className="editor-actions">
+          <button
+            type="button"
+            className="btn-default"
+            disabled={!profileId || !markdown.trim() || busy}
+            onClick={applyDefault}
+          >
+            {translating ? "Traduction…" : "Appliquer défaut"}
+          </button>
+          <button type="button" className="btn-export" disabled={!markdown.trim() || busy} onClick={downloadPdf}>
+            {busy && !translating ? "Export…" : "Exporter le PDF"}
+          </button>
+        </div>
       </section>
 
       {toast ? <div className="toast">{toast}</div> : null}

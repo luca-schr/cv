@@ -28,13 +28,26 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  profiles: () => request<ProfileSummary[]>("/api/profiles"),
+  profiles: () => request<ProfileSummary[]>("/api/selectprofile"),
   profile: (id: string, lang: Lang = "fr") =>
-    request<ProfileDetail>(`/api/profiles/${id}?lang=${lang}`),
+    request<ProfileDetail>(`/api/selectprofile/${id}?lang=${lang}`),
   exportPdf: (markdown: string, filename: string) =>
     request<Response>("/api/export/pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ markdown, filename }),
+    }),
+  applyDefault: (id: string, markdown: string, lang: Lang) =>
+    request<{
+      id: string;
+      lang: Lang;
+      other_lang: Lang;
+      ok: boolean;
+      translated: boolean;
+      error?: string | null;
+    }>("/api/applydefault", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profile_id: id, markdown, lang }),
     }),
 };

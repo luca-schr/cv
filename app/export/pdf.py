@@ -12,9 +12,9 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 STYLE_FILE = ROOT / "style.css"
-PHOTO_PATH = "assets/DSC02211_squaree.jpg"
+PHOTO_PATH = "assets/photo-pro.jpg"
 
 _SCALE_MIN = 0.52
 _SCALE_MAX = 1.42
@@ -48,6 +48,8 @@ def _normalize_photo_paths(markdown: str) -> str:
         markdown.replace("](lucas-schrever.jpg)", f"]({PHOTO_PATH})")
         .replace("](DSC02211.jpg)", f"]({PHOTO_PATH})")
         .replace("](DSC02211_square.jpg)", f"]({PHOTO_PATH})")
+        .replace("](DSC02211_squaree.jpg)", f"]({PHOTO_PATH})")
+        .replace("](assets/DSC02211_squaree.jpg)", f"]({PHOTO_PATH})")
     )
 
 
@@ -185,7 +187,6 @@ def export_pdf_result(markdown: str) -> PdfExportResult:
     try:
         _pandoc_to_html(md_path, html_path, env=env)
 
-        # Dichotomie sur toute la plage : plus grand scale qui reste ≤ 1 page
         lo, hi = _SCALE_MIN, _SCALE_MAX
         best_bytes: bytes | None = None
         best_scale = _SCALE_MIN

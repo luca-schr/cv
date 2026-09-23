@@ -131,8 +131,7 @@ button {
 }
 
 .profile-select,
-.filename-input,
-.meta-row input {
+.filename-input {
   font: inherit;
   font-size: var(--fs);
   color: var(--text);
@@ -168,29 +167,11 @@ button {
 }
 
 .filename-input:focus,
-.meta-row input:focus,
 .editor-field:focus,
 .profile-select:focus {
   outline: none;
   border-color: var(--blue);
   box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
-}
-
-.meta-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 7rem;
-  gap: 0.55rem;
-  margin-bottom: 0.55rem;
-}
-
-.meta-row label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  color: var(--muted);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .sr-only {
@@ -236,11 +217,21 @@ button {
 button:hover:not(:disabled) { opacity: 0.93; }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.btn-export {
-  width: 100%;
+.editor-actions {
+  display: flex;
+  gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+.editor-actions button {
+  flex: 1 1 50%;
+  width: auto;
   padding: 0.55rem 0.85rem;
   font-size: var(--fs-title);
+}
+
+.btn-default {
+  background: linear-gradient(180deg, var(--green) 0%, #1b5e3a 100%);
 }
 
 .toast {

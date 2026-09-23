@@ -22,8 +22,5 @@ export type LoadStatus = "loading" | "ok" | "error";
 
 export type NamingOpts = {
   title: string;
-  company: string;
   english: boolean;
 };
-
-export type VersionMap = Record<string, number>;

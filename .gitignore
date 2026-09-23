@@ -8,10 +8,11 @@ venv/
 node_modules/
 client/dist/
 
-# Secrets & SQLite local
-*.db
+# Secrets
 .env
 .env.*
+*.db
+!data/cv.sqlite
 
 # Exports générés
 *.pdf
