@@ -49,8 +49,23 @@ def init_schema(conn: sqlite3.Connection) -> None:
             hide_links TEXT,
             payload TEXT NOT NULL DEFAULT '{}',
             markdown_fr TEXT,
-            markdown_en TEXT
+            markdown_en TEXT,
+            updated_at TEXT
         );
+        """
+    )
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(profiles)")}
+    if "updated_at" not in cols:
+        conn.execute("ALTER TABLE profiles ADD COLUMN updated_at TEXT")
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS profiles_touch_updated_at
+        AFTER UPDATE OF markdown_fr, markdown_en ON profiles
+        BEGIN
+            UPDATE profiles
+            SET updated_at = strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime')
+            WHERE id = NEW.id;
+        END;
         """
     )
     conn.commit()
@@ -73,6 +88,7 @@ def _profile_from_row(row: sqlite3.Row) -> dict:
         "profile": {"fr": row["title_fr"] or "", "en": row["title_en"] or ""},
         "hideLinks": hide,
         "markdown": markdown,
+        "updatedAt": row["updated_at"] or "",
     }
 
 

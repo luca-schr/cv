@@ -45,6 +45,7 @@ export const api = {
       ok: boolean;
       translated: boolean;
       error?: string | null;
+      updatedAt?: string;
     }>("/api/applydefault", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

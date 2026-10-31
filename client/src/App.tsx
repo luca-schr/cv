@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import { buildBasename } from "./naming";
 import type { LoadStatus, ProfileSummary } from "./types";
+import { useLastModified } from "./useLastModified";
 
 function labelOf(profile: ProfileSummary | null | undefined, english: boolean): string {
   if (!profile?.profile) return "";
@@ -18,6 +19,7 @@ export default function App() {
   const [english, setEnglish] = useState(false);
   const [markdown, setMarkdown] = useState("");
   const [title, setTitle] = useState("");
+  const [updatedAt, setUpdatedAt] = useState("");
   const [filename, setFilename] = useState("");
   const [filenameDirty, setFilenameDirty] = useState(false);
   const [status, setStatus] = useState<LoadStatus>("loading");
@@ -28,6 +30,7 @@ export default function App() {
 
   const selected = profiles.find((p) => p.id === profileId) || null;
   const heading = title || labelOf(selected, english) || "Profil";
+  const lastModified = useLastModified(updatedAt, english);
   const autoName = useMemo(
     () => buildBasename({ title: heading, english }),
     [heading, english]
@@ -70,6 +73,7 @@ export default function App() {
         if (cancelled) return;
         setTitle(data.title || "");
         setMarkdown(data.markdown || "");
+        setUpdatedAt(data.updatedAt || "");
         setFilenameDirty(false);
         setStatus("ok");
       } catch (err) {
@@ -115,6 +119,7 @@ export default function App() {
     setTranslating(true);
     try {
       const result = await api.applyDefault(profileId, markdown, english ? "en" : "fr");
+      if (result.updatedAt) setUpdatedAt(result.updatedAt);
       if (result.translated) {
         showToast("Défaut enregistré, autre langue traduite");
       } else {
@@ -148,7 +153,10 @@ export default function App() {
 
       <section className="panel section-profiles">
         <div className="profile-bar">
-          <h2>{heading}</h2>
+          <h2>
+            {heading}
+            {lastModified ? <small className="profile-updated">{lastModified}</small> : null}
+          </h2>
           <div className="profile-select-wrap">
             <span
               className={`status-dot ${status}`}

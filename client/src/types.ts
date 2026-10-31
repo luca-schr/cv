@@ -16,6 +16,7 @@ export type ProfileDetail = {
   title: string;
   profile: Localized;
   markdown: string;
+  updatedAt?: string;
 };
 
 export type LoadStatus = "loading" | "ok" | "error";

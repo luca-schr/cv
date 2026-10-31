@@ -105,6 +105,14 @@ button {
   white-space: nowrap;
 }
 
+.profile-updated {
+  margin-left: 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--muted);
+  vertical-align: middle;
+}
+
 .profile-select-wrap {
   display: flex;
   align-items: center;

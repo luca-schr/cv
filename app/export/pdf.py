@@ -12,6 +12,8 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
+from app.export.dates import abbreviate_months, dates_fit, expand_months
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 STYLE_FILE = ROOT / "style.css"
 PHOTO_PATH = "assets/photo-pro.jpg"
@@ -142,6 +144,30 @@ def _weasyprint_pdf(
     return pdf_path.read_bytes()
 
 
+def _stylesheets(layout: _Layout) -> list:
+    from weasyprint import CSS
+
+    return [
+        CSS(filename=str(STYLE_FILE)),
+        CSS(
+            string=(
+                ":root {\n"
+                f"  --cv-scale: {layout.scale:.4f};\n"
+                f"  --cv-gap-scale: {layout.gap_scale:.4f};\n"
+                f"  --cv-line-height: {layout.line_height:.3f};\n"
+                "}\n"
+            )
+        ),
+    ]
+
+
+def _months_fit(html: str, layout: _Layout) -> bool:
+    try:
+        return dates_fit(html, _stylesheets(layout), base_url=str(ROOT))
+    except Exception:
+        return True
+
+
 def _render_pages(
     html_path: Path,
     pdf_path: Path,
@@ -172,7 +198,7 @@ def export_pdf_result(markdown: str) -> PdfExportResult:
 
     env = os.environ.copy()
     env.setdefault("WEASYPRINT_DLL_DIRECTORIES", r"C:\msys64\mingw64\bin")
-    markdown = _normalize_photo_paths(markdown)
+    markdown = expand_months(_normalize_photo_paths(markdown))
     started = time.perf_counter()
     renders = 0
 
@@ -208,6 +234,17 @@ def export_pdf_result(markdown: str) -> PdfExportResult:
             pdf_bytes, pages = _render_pages(html_path, pdf_path, env=env, layout=layout)
             renders += 1
             best_bytes, best_scale, best_pages = pdf_bytes, _SCALE_MIN, pages
+
+        layout = _layout_from_scale(best_scale)
+        html = html_path.read_text(encoding="utf-8")
+        if not _months_fit(html, layout):
+            short = abbreviate_months(markdown)
+            if short != markdown:
+                md_path.write_text(short, encoding="utf-8")
+                _pandoc_to_html(md_path, html_path, env=env)
+                pdf_bytes, pages = _render_pages(html_path, pdf_path, env=env, layout=layout)
+                renders += 1
+                best_bytes, best_scale, best_pages = pdf_bytes, best_scale, pages
 
         elapsed_ms = (time.perf_counter() - started) * 1000
         return PdfExportResult(

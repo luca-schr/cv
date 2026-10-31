@@ -42,7 +42,7 @@ def translate_markdown(markdown: str, source_lang: str, target_lang: str) -> str
         "model": OLLAMA_MODEL,
         "prompt": prompt,
         "stream": False,
-        "options": {"temperature": 0.1, "num_predict": 4096},
+        "options": {"temperature": 0.1, "num_ctx": 4096, "num_predict": 2048},
     }
     req = urllib.request.Request(
         f"{OLLAMA_HOST}/api/generate",
@@ -74,6 +74,7 @@ def apply_default(profile_id: str, lang: str, markdown: str) -> dict:
     ):
         raise KeyError("Profil introuvable")
 
+    saved = store.get_profile(profile_id) or {}
     return {
         "id": profile_id,
         "lang": lang,
@@ -81,4 +82,5 @@ def apply_default(profile_id: str, lang: str, markdown: str) -> dict:
         "ok": True,
         "translated": translated_ok,
         "error": error,
+        "updatedAt": saved.get("updatedAt") or "",
     }

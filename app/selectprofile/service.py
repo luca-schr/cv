@@ -28,4 +28,5 @@ def get_profile_detail(profile_id: str, lang: str) -> dict:
         or "",
         "profile": profile.get("profile", {}),
         "markdown": markdown,
+        "updatedAt": profile.get("updatedAt") or "",
     }
