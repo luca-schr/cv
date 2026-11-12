@@ -78,7 +78,7 @@ header.cv-header {
   box-sizing: border-box;
   display: block;
   margin: 0 0 var(--cv-rule-gap);
-  padding: 0 calc(6.3em + 0.35rem) var(--cv-rule-gap) 0;
+  padding: 0 calc(7em + 0.35rem) var(--cv-rule-gap) 0;
   border-bottom: none;
 }
 
@@ -109,17 +109,21 @@ header.cv-header .cv-name {
 header.cv-header p.cv-role {
   font-size: calc(var(--cv-h1-pt) * var(--cv-role-ratio) * var(--cv-scale));
   font-weight: 600;
-  margin: 0 0 0.14rem 0;
+  margin: 0;
   line-height: 1.12;
   color: var(--color-text);
 }
 
 header.cv-header .cv-contact-primary,
 header.cv-header .cv-contact-links {
-  margin: 0 0 0.14rem 0;
+  margin: 0.14rem 0 0;
   font-size: calc(var(--cv-p-pt) * 0.92 * var(--cv-scale));
   line-height: 1.28;
   color: var(--color-muted);
+}
+
+header.cv-header .cv-contact-primary {
+  margin-top: 0.55rem;
 }
 
 header.cv-header .cv-contact-links {
@@ -138,8 +142,8 @@ header.cv-header img.photo {
   position: absolute;
   top: 0;
   right: 0;
-  width: 6.3em;
-  height: 6.3em;
+  width: 7em;
+  height: 7em;
   object-fit: cover;
   object-position: center 18%;
   border: none;
